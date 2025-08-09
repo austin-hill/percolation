@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <unordered_set>
 
+#include "gnuplot-iostream.h"
+
 #include "include/disjoint_set_forest.hpp"
 #include "include/flat_hash_map.hpp"
 #include "include/pcg_extras.hpp"
@@ -41,6 +43,12 @@ public:
   percolation(double p) : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _rng(pcg_extras::seed_seq_from<std::random_device>{})
   {
     _neighbours.push({0, 0, 0});
+
+    _gp << "set xrange [-50:50]" << std::endl;
+    _gp << "set yrange [-50:50]" << std::endl;
+    _gp << "set zrange [-50:50]" << std::endl;
+
+    _gp << "splot NaN" << std::endl;
   }
 
   void print_node(const std::tuple<int, int, int>& node)
@@ -81,12 +89,33 @@ public:
         if (!res && _rng() < _bound)
         {
           _neighbours.push(n);
+          _gp << "set arrow from " << std::get<0>(next_node) << ", " << std::get<1>(next_node) << ", " << std::get<2>(next_node) << " to "
+              << std::get<0>(n) << ", " << std::get<1>(n) << ", " << std::get<2>(n) << "nohead lw 0.2" << std::endl;
         }
       }
 
-      if (_nodes.size() > 1e7)
+      if (_nodes.size() % 1000 == 0)
+      {
+        _gp << "refresh" << std::endl;
+      }
+
+      if (_nodes.size() > 1e5)
       {
         std::cout << "Failed to terminate: " << _neighbours.size() << std::endl;
+
+        /* std::vector<std::tuple<int, int, int>> nb;
+        while (_neighbours.size() > 0)
+        {
+          nb.push_back(_neighbours.front());
+          _neighbours.pop();
+        } */
+
+        /* Gnuplot gp;
+
+        gp << "set title 'test'\n";
+
+        gp << "splot" << gp.file1d(nb) << "u 1:2:3 with points pt 7 ps 0.1 title 'test'" << std::endl; */
+
         //_tm.print_ms();
         return false;
       }
@@ -101,6 +130,7 @@ private:
   ska::flat_hash_set<std::tuple<int, int, int>, boost::hash<std::tuple<int, int, int>>> _nodes; // All of the nodes in the cluster visited so far
   std::queue<std::tuple<int, int, int>> _neighbours; // All of the immediate neighbours of the so far visited cluster
   pcg64_fast _rng;
+  Gnuplot _gp;
   // timer _tm;
 };
 
@@ -182,7 +212,8 @@ private:
 
 int main()
 {
-  percolation1<200> p(0.248); // p(0.248);
+  // percolation1<400> p(0.25); // p(0.2488125);
+  percolation p(0.248);
 
   timer tm;
   tm.start();
