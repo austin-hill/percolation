@@ -158,6 +158,11 @@ public:
       : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _nodes(get_index, cube_size * cube_size * cube_size, print_node),
         _rng(pcg_extras::seed_seq_from<std::random_device>{})
   {
+    _gp << "set xrange [0:" << cube_size << "]" << std::endl;
+    _gp << "set yrange [0:" << cube_size << "]" << std::endl;
+    _gp << "set zrange [0:" << cube_size << "]" << std::endl;
+
+    _gp << "splot NaN" << std::endl;
   }
 
   inline std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node)
@@ -199,6 +204,12 @@ public:
     }
 
     std::cout << "Largest cluster: " << _nodes.get_largest_tree() << std::endl;
+
+    auto largest_graph = _nodes.get_largest_graph_nodes();
+
+    _gp << "set title 'test'\n";
+    _gp << "splot" << _gp.file1d(largest_graph) << "u 1:2:3 with points pt 7 ps 0.01 title 'test'" << std::endl;
+
     return true;
   }
 
@@ -207,13 +218,14 @@ private:
   const uint64_t _bound;
   disjoint_set_forest<std::tuple<int, int, int>> _nodes; // All of the nodes in the cluster visited so far
   pcg64_fast _rng;
+  Gnuplot _gp;
   // timer _tm;
 };
 
 int main()
 {
-  // percolation1<400> p(0.25); // p(0.2488125);
-  percolation p(0.248);
+  percolation1<400> p(0.248); // p(0.2488125);
+  // percolation p(0.248);
 
   timer tm;
   tm.start();
