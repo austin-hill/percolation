@@ -1,3 +1,5 @@
+#pragma once
+
 #include <functional>
 #include <iostream>
 #include <vector>
@@ -54,7 +56,7 @@ public:
     return find(n)->value;
   }
 
-  void merge(const element& e1, const element& e2)
+  virtual void merge(const element& e1, const element& e2)
   {
     node* n1 = &_forest[_index_map(e1)];
     node* n2 = &_forest[_index_map(e2)];
@@ -71,46 +73,15 @@ public:
     {
       n1->parent = n2->value;
       n2->size += n1->size;
-
-      if (n2->size > _forest[_largest_tree_root].size)
-      {
-        _largest_tree_root = _index_map(n2->value);
-      }
     }
     else
     {
       n2->parent = n1->value;
       n1->size += n2->size;
-
-      if (n1->size > _forest[_largest_tree_root].size)
-      {
-        _largest_tree_root = _index_map(n1->value);
-      }
     }
   }
 
-  size_t get_largest_tree() const
-  {
-    return _forest[_largest_tree_root].size;
-  }
-
-  std::vector<element> get_largest_graph_nodes()
-  {
-    std::vector<element> largest_graph;
-    const node& root_node = _forest[_largest_tree_root];
-
-    for (auto& node : _forest)
-    {
-      if (*find(&node) == root_node)
-      {
-        largest_graph.push_back(node.value);
-      }
-    }
-
-    return largest_graph;
-  }
-
-private:
+protected:
   node* find(node* n)
   {
     while (n->parent != n->value)
@@ -130,7 +101,6 @@ private:
   size_t _num_elements;
   std::function<size_t(const element&)> _index_map; // Must map elements to a unique index in the range [0, num_elements)
   std::function<void(const element&)> _print_element;
-  size_t _largest_tree_root = 0;
 };
 
 /*
