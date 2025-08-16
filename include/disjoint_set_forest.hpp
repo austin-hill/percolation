@@ -28,6 +28,12 @@ public:
       return value == rhs.value;
     }
 
+    // Need this to be able to sort by size
+    bool operator<(const node& rhs) const
+    {
+      return size < rhs.size;
+    }
+
     element parent; // Store this rather than a pointer or referece to the actual node, as later resizing will invalidate that
     element value;
     uint64_t size; // Number of descendants, including self

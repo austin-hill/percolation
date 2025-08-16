@@ -2,8 +2,8 @@
 
 #include <algorithm>
 #include <limits>
+#include <map>
 #include <queue>
-#include <set>
 #include <stdint.h>
 
 #include "gnuplot-iostream.h"
@@ -13,6 +13,7 @@
 
 // In here, have definitions of merge etc which keep track of largest clusters. Have functions which can get clusters etc.
 // Add enable if too.
+// Do we want largest N clusters, or every cluster of size > N? Probably the latter?
 
 template <typename element>
 class percolation : public disjoint_set_forest<element>
@@ -85,6 +86,55 @@ public:
     }
 
     return largest_graph;
+  }
+
+  std::vector<std::vector<element>> get_clusters(size_t minimum_size)
+  {
+    std::vector<std::vector<element>> clusters;
+    std::unordered_map<size_t, size_t> root_index_to_cluster_index_map;
+
+    for (auto& n : this->_forest)
+    {
+      const auto& root_node = *this->find(&n);
+      if (root_node.size > minimum_size)
+      {
+        const auto root_index = this->_index_map(root_node.value);
+        if (root_index_to_cluster_index_map.contains(root_index))
+        {
+          clusters[root_index_to_cluster_index_map.at(root_index)].push_back(n.value);
+        }
+        else
+        {
+          root_index_to_cluster_index_map.emplace(root_index, clusters.size());
+          clusters.push_back(std::vector<element>({n.value}));
+        }
+      }
+    }
+
+    return clusters;
+  }
+
+  std::map<node, std::vector<element>> get_clusters_sorted(size_t minimum_size)
+  {
+    std::map<node, std::vector<element>> clusters;
+
+    for (auto& n : this->_forest)
+    {
+      const auto& root_node = *this->find(&n);
+      if (root_node.size > minimum_size)
+      {
+        if (clusters.contains(root_node))
+        {
+          clusters.at(root_node).push_back(n.value);
+        }
+        else
+        {
+          clusters.emplace(root_node, std::vector<element>({n.value}));
+        }
+      }
+    }
+
+    return clusters;
   }
 
 private:

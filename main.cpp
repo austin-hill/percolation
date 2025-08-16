@@ -131,7 +131,7 @@ private:
 
 int main()
 {
-  cubic_site_percolation<400> p(0.2488127); // p(0.2488125);
+  cubic_site_percolation<200> p(0.2488127); // p(0.2488125);
   // percolation1 p(0.248);
 
   timer tm;

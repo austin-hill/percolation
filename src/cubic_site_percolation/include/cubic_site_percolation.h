@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/container_hash/hash.hpp>
 #include <limits>
+#include <print>
 #include <queue>
 #include <random>
 #include <set>
@@ -89,7 +90,19 @@ public:
     auto largest_graph = _nodes.get_largest_graph_nodes();
 
     _gp << "set title 'test'\n";
-    _gp << "splot" << _gp.file1d(largest_graph) << "u 1:2:3 with points pt 7 ps 0.001 title 'test'" << std::endl;
+    _gp << "splot NaN" << std::endl;
+
+    const auto largest_clusters = _nodes.get_clusters_sorted(10000);
+    const std::vector<std::string> colours = {"red", "orange", "yellow", "green", "blue", "purple", "pink", "brown", "grey"};
+    size_t colour_index = 0;
+    for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && colour_index < 10; ++it, ++colour_index)
+    { //  rgb " << colours[colour_index] << "
+      _gp << "replot" << _gp.file1d(it->second) << "u 1:2:3 with points pt 7 ps 0.001 title 'test'" << std::endl;
+      sleep(1);
+    }
+    std::println("Number of clusters of size at least 10000: {}", largest_clusters.size());
+
+    // _gp << "splot" << _gp.file1d(largest_graph) << "u 1:2:3 with points pt 7 ps 0.001 title 'test'" << std::endl;
 
     return true;
   }
