@@ -64,7 +64,7 @@ public:
     };
   }
 
-  bool generate_cluster()
+  bool generate_clusters()
   {
     std::cout << "Generating cluster..." << std::endl;
     // Almost all time is spent checking and inserting into _nodes.
@@ -131,14 +131,16 @@ private:
 
 int main()
 {
-  cubic_site_percolation<200> p(0.2488127); // p(0.2488125);
+  cubic_site_percolation<300> p(0.2488127); // p(0.2488125);
   // percolation1 p(0.248);
 
   timer tm;
   tm.start();
-  p.generate_cluster();
+  p.generate_clusters();
   tm.stop();
   tm.print_ms();
+
+  p.plot_clusters(10000, 15);
 
   return 0;
 }

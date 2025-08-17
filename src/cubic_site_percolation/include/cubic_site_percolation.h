@@ -11,10 +11,13 @@
 
 #include "gnuplot-iostream.h"
 
+#include "colour_names.h"
 #include "pcg_extras.hpp"
 #include "pcg_random.hpp"
 #include "percolation.h"
 #include "timer.h"
+
+// GNU plot has its limitations here. Do not waste too much time fiddling with it, will probably write something proper later anyway.
 
 template <size_t cube_size>
 class cubic_site_percolation
@@ -43,8 +46,12 @@ public:
     _gp << "set xrange [0:" << cube_size << "]" << std::endl;
     _gp << "set yrange [0:" << cube_size << "]" << std::endl;
     _gp << "set zrange [0:" << cube_size << "]" << std::endl;
-
-    // _gp << "splot NaN" << std::endl;
+    _gp << "set view equal xyz" << std::endl; // Force grid to be square
+    _gp << "unset border" << std::endl;
+    _gp << "unset xtics" << std::endl;
+    _gp << "unset ytics" << std::endl;
+    _gp << "unset ztics" << std::endl;
+    _gp << "set key outside right top samplen 2 spacing .7 font ',8' tc rgb 'grey40'" << std::endl;
   }
 
   inline std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node)
@@ -56,9 +63,9 @@ public:
     };
   }
 
-  bool generate_cluster()
+  bool generate_clusters()
   {
-    std::cout << "Generating cluster..." << std::endl;
+    std::cout << "Generating clusters..." << std::endl;
 
     for (int i = 0; i < cube_size; ++i)
     {
@@ -87,24 +94,25 @@ public:
 
     std::cout << "Largest cluster: " << _nodes.get_largest_tree() << std::endl;
 
-    auto largest_graph = _nodes.get_largest_graph_nodes();
-
-    _gp << "set title 'test'\n";
-    _gp << "splot NaN" << std::endl;
-
-    const auto largest_clusters = _nodes.get_clusters_sorted(10000);
-    const std::vector<std::string> colours = {"red", "orange", "yellow", "green", "blue", "purple", "pink", "brown", "grey"};
-    size_t colour_index = 0;
-    for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && colour_index < 10; ++it, ++colour_index)
-    { //  rgb " << colours[colour_index] << "
-      _gp << "replot" << _gp.file1d(it->second) << "u 1:2:3 with points pt 7 ps 0.001 title 'test'" << std::endl;
-      sleep(1);
-    }
-    std::println("Number of clusters of size at least 10000: {}", largest_clusters.size());
-
-    // _gp << "splot" << _gp.file1d(largest_graph) << "u 1:2:3 with points pt 7 ps 0.001 title 'test'" << std::endl;
-
     return true;
+  }
+
+  void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10)
+  {
+    max_num_clusters = std::min(colour_names.size(), max_num_clusters);
+    _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << cube_size << "'" << std::endl;
+
+    const auto largest_clusters = _nodes.get_clusters_sorted(min_cluster_size);
+    size_t count = 0;
+
+    std::println("Number of clusters of size at least {}: {}", min_cluster_size, largest_clusters.size());
+
+    for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && count < max_num_clusters; ++it, ++count)
+    {
+      _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
+          << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.size() << " points)'"
+          << ((count == max_num_clusters - 1) ? "; pause mouse close" : "") << std::endl;
+    }
   }
 
 private:
