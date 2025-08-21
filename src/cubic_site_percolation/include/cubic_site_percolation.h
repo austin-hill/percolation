@@ -34,13 +34,19 @@ public:
     return std::get<0>(node) + std::get<1>(node) * cube_size + std::get<2>(node) * cube_size * cube_size;
   }
 
+  static bool on_boundary(const std::tuple<int, int, int>& node)
+  {
+    return std::get<0>(node) == 0 || std::get<0>(node) == cube_size - 1 || std::get<1>(node) == 0 || std::get<1>(node) == cube_size - 1 ||
+           std::get<2>(node) == 0 || std::get<2>(node) == cube_size - 1;
+  }
+
   static void print_node(const std::tuple<int, int, int>& node)
   {
     std::cout << "Node: (" << std::get<0>(node) << ", " << std::get<1>(node) << ", " << std::get<2>(node) << ")" << std::endl;
   }
 
   cubic_site_percolation(double p)
-      : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _nodes(get_index, cube_size * cube_size * cube_size, print_node),
+      : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _nodes(get_index, cube_size * cube_size * cube_size, print_node, on_boundary),
         _rng(pcg_extras::seed_seq_from<std::random_device>{})
   {
     _gp << "set xrange [0:" << cube_size << "]" << std::endl;
@@ -109,9 +115,10 @@ public:
 
     for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && count < max_num_clusters; ++it, ++count)
     {
-      _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
-          << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.size() << " points)'"
-          << ((count == max_num_clusters - 1) ? "; pause mouse close" : "") << std::endl;
+      _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second.first) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
+          << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.first.size() << " points)"
+          << ((it->second.second) ? "(still growing)" : "(terminated)") << "'" << ((count == max_num_clusters - 1) ? "; pause mouse close" : "")
+          << std::endl;
     }
   }
 

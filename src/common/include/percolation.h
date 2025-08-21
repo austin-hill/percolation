@@ -27,8 +27,9 @@ class percolation : public disjoint_set_forest<element>
   Expected complexity: Hopefully in most cases we don't have to do much merging. Either way, should be amortized O(n*ackerman^-1(n)).
   */
 public:
-  percolation(std::function<size_t(const element&)> index_map, size_t num_elements, std::function<void(const element&)> print_element)
-      : disjoint_set_forest<element>(index_map, num_elements, print_element)
+  percolation(std::function<size_t(const element&)> index_map, size_t num_elements, std::function<void(const element&)> print_element,
+              std::function<bool(const element&)> on_boundary)
+      : disjoint_set_forest<element>(index_map, num_elements, print_element), _on_boundary(on_boundary)
   {
   }
 
@@ -114,22 +115,23 @@ public:
     return clusters;
   }
 
-  std::map<node, std::vector<element>> get_clusters_sorted(size_t minimum_size)
+  std::map<node, std::pair<std::vector<element>, bool>> get_clusters_sorted(size_t minimum_size)
   {
-    std::map<node, std::vector<element>> clusters;
+    std::map<node, std::pair<std::vector<element>, bool>> clusters;
 
-    for (auto& n : this->_forest)
+    for (const auto& n : this->_forest)
     {
-      const auto& root_node = *this->find(&n);
+      const auto& root_node = *this->find(this->get_node(n.value));
       if (root_node.size > minimum_size)
       {
         if (clusters.contains(root_node))
         {
-          clusters.at(root_node).push_back(n.value);
+          clusters.at(root_node).first.push_back(n.value);
+          clusters.at(root_node).second |= _on_boundary(n.value);
         }
         else
         {
-          clusters.emplace(root_node, std::vector<element>({n.value}));
+          clusters.emplace(root_node, std::pair<std::vector<element>, bool>{std::vector<element>({n.value}), _on_boundary(n.value)});
         }
       }
     }
@@ -139,4 +141,5 @@ public:
 
 private:
   size_t _largest_tree_root = 0;
+  std::function<bool(const element&)> _on_boundary;
 };

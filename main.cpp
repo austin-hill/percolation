@@ -131,7 +131,7 @@ private:
 
 int main()
 {
-  cubic_site_percolation<300> p(0.2488127); // p(0.2488125);
+  cubic_site_percolation<300> p(0.245); // p(0.2488125);
   // percolation1 p(0.248);
 
   timer tm;
@@ -140,7 +140,7 @@ int main()
   tm.stop();
   tm.print_ms();
 
-  p.plot_clusters(10000, 15);
+  p.plot_clusters(1000, 20);
 
   return 0;
 }
