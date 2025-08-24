@@ -131,7 +131,7 @@ private:
 
 int main()
 {
-  cubic_site_percolation<300> p(0.245); // p(0.2488125);
+  cubic_site_percolation p(0.248, 9); // p(0.2488125); 2^8 = 256 2^9 = 512
   // percolation1 p(0.248);
 
   timer tm;
@@ -140,7 +140,7 @@ int main()
   tm.stop();
   tm.print_ms();
 
-  p.plot_clusters(1000, 20);
+  p.plot_clusters(10000, 10);
 
   return 0;
 }
@@ -152,4 +152,11 @@ Memory usage:
 So 500*500*500 probably uses about 2.7GB of RAM
 
 100*100*100 uses about 21MB of RAM.
+
+Improved memory usage:
+12 bytes per node (one size_t, one uint32_t in an struct) rather than 32 bytes (two triplets of ints plus uint64_t)
+
+256 uses about 200MB of RAM
+512 uses about 1.6GB of RAM
+1024 uses about 13GB of RAM
 */

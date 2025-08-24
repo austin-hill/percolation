@@ -4,28 +4,35 @@
 #include <iostream>
 #include <vector>
 
+/*
+Store nodes by indices in array (64 bit), with function to retrieve value on output.
+Same for parents
+Store size as uint32, for clusters up to 4 billion in size.
+Thus usage is 12 bytes per node.
+
+Usage was 4*3*2+8 = 32 bytes per node.
+
+Improved usage is now 8+4 = 12 bytes per node.
+*/
+
 template <typename element>
 class disjoint_set_forest
 {
 public:
   struct node
   {
-    node() : parent(element()), value(element()), size(0)
+    node() : parent_index(0), size(0)
     {
     }
-    node(const element& v) : parent(v), value(v), size(1)
+    node(const element& e) : parent_index(get_index(e)), size(1)
     {
     }
-    node(const node& n) : parent(n.parent), value(n.value), size(n.size)
+    node(const node& n) : parent_index(n.parent_index), size(n.size)
     {
     }
     node& operator=(node& rhs)
     {
       return rhs;
-    }
-    bool operator==(const node& rhs) const
-    {
-      return value == rhs.value;
     }
 
     // Need this to be able to sort by size
@@ -34,38 +41,39 @@ public:
       return size < rhs.size;
     }
 
-    element parent; // Store this rather than a pointer or referece to the actual node, as later resizing will invalidate that
-    element value;
-    uint64_t size; // Number of descendants, including self
+    size_t parent_index; // Node index is not necessary to store
+    uint32_t size;       // Number of descendants, including self
   };
 
-  disjoint_set_forest(std::function<size_t(const element&)> index_map, size_t num_elements, std::function<void(const element&)> print_element)
-      : _index_map(index_map), _print_element(print_element), _num_elements(num_elements)
+  disjoint_set_forest(size_t num_elements) : _num_elements(num_elements)
   {
     _forest.resize(num_elements);
   }
 
+  virtual size_t get_index(const element& node) = 0; // Must map elements to a unique index in the range [0, num_elements)
+  virtual element get_element(size_t index) = 0;     // Inverse map of the above map
+  virtual void print_node(const element& node) = 0;
+
   // IMPORTANT: v must not be in the forest.
-  void make_set(const element& v)
+  void make_set(const element& e)
   {
-    node& n = _forest[_index_map(v)];
-    n.value = v;
+    node& n = _forest[get_index(e)];
     n.size = 1;
-    n.parent = v;
+    n.parent_index = get_index(e);
   }
 
   // e must be in forest
   element& find(const element& e)
   {
-    node& n = _forest[_index_map(e)];
+    node& n = _forest[get_index(e)];
 
-    return find(n)->value;
+    return get_element(get_index(n));
   }
 
   virtual void merge(const element& e1, const element& e2)
   {
-    node* n1 = &_forest[_index_map(e1)];
-    node* n2 = &_forest[_index_map(e2)];
+    node* n1 = &_forest[get_index(e1)];
+    node* n2 = &_forest[get_index(e2)];
 
     n1 = find(n1);
     n2 = find(n2);
@@ -77,12 +85,12 @@ public:
 
     if (n1->size < n2->size)
     {
-      n1->parent = n2->value;
+      n1->parent_index = get_index(n2);
       n2->size += n1->size;
     }
     else
     {
-      n2->parent = n1->value;
+      n2->parent_index = get_index(n1);
       n1->size += n2->size;
     }
   }
@@ -90,23 +98,26 @@ public:
 protected:
   node* find(node* n)
   {
-    while (n->parent != n->value)
+    while (n->parent_index != get_index(n))
     {
-      n->parent = get_node(n->parent)->parent;
-      n = get_node(n->parent);
+      n->parent_index = _forest[n->parent_index].parent_index;
+      n = &_forest[n->parent_index];
     }
     return n;
   }
 
   node* get_node(const element& e)
   {
-    return &_forest[_index_map(e)];
+    return &_forest[get_index(e)];
+  }
+
+  size_t get_index(node* n)
+  {
+    return n - &*_forest.begin();
   }
 
   std::vector<node> _forest;
   size_t _num_elements;
-  std::function<size_t(const element&)> _index_map; // Must map elements to a unique index in the range [0, num_elements)
-  std::function<void(const element&)> _print_element;
 };
 
 /*
