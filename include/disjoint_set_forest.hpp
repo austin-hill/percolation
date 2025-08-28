@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <iostream>
+#include <print>
 #include <vector>
 
 /*
@@ -35,10 +36,13 @@ public:
       return rhs;
     }
 
-    // Need this to be able to sort by size
+    /*
+    Need this to be able to sort by size in a std::map
+    NOTE: second part is to ensure different clusters are distinct, as map uses < for equality comparisons.
+    */
     bool operator<(const node& rhs) const
     {
-      return size < rhs.size;
+      return size < rhs.size || (size == rhs.size && parent_index < rhs.parent_index);
     }
 
     size_t parent_index; // Node index is not necessary to store
@@ -52,7 +56,6 @@ public:
 
   virtual size_t get_index(const element& node) = 0; // Must map elements to a unique index in the range [0, num_elements)
   virtual element get_element(size_t index) = 0;     // Inverse map of the above map
-  virtual void print_node(const element& node) = 0;
 
   // IMPORTANT: v must not be in the forest.
   void make_set(const element& e)
@@ -106,12 +109,21 @@ protected:
     return n;
   }
 
+  const node* find_const(const node* n)
+  {
+    while (n->parent_index != get_index(n))
+    {
+      n = &_forest[n->parent_index];
+    }
+    return n;
+  }
+
   node* get_node(const element& e)
   {
     return &_forest[get_index(e)];
   }
 
-  size_t get_index(node* n)
+  size_t get_index(const node* n) const
   {
     return n - &*_forest.begin();
   }

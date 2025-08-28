@@ -10,7 +10,7 @@ add_global_arguments('-O2', language: 'cpp')
 add_global_arguments('-std=c++23', language: 'cpp')
 #add_global_arguments('-g', language: 'cpp')
 
-library('flat_hash_map', 'external/flat_hash_map.hpp')
+#library('flat_hash_map', 'external/flat_hash_map.hpp')
 library('pcg', ['external/pcg_random.hpp', 'external/pcg_extras.hpp'])
 
 library('timer', 'include/timer.h')
@@ -25,14 +25,24 @@ include_dirs = include_directories(
   ],
 )
 
+gnuplot_link_args = [
+  '-L/usr/lib',
+  '-lboost_filesystem',
+  '-lboost_system',
+  '-lboost_iostreams',
+]
+
+cubic_site_percolation = library(
+  'cubic_site_percolation',
+  'src/cubic_site_percolation/cubic_site_percolation.cpp',
+  include_directories: ['src/cubic_site_percolation/include', include_dirs],
+  link_args: gnuplot_link_args,
+)
+
 executable(
   'percolation',
   'main.cpp',
   include_directories: include_dirs,
-  link_args: [
-    '-L/usr/lib',
-    '-lboost_filesystem',
-    '-lboost_system',
-    '-lboost_iostreams',
-  ],
+  link_with: cubic_site_percolation,
+  link_args: gnuplot_link_args,
 )

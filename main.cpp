@@ -136,11 +136,11 @@ int main()
 
   timer tm;
   tm.start();
-  p.generate_clusters();
+  p.generate_clusters_parallel(4);
   tm.stop();
   tm.print_ms();
 
-  p.plot_clusters(10000, 10);
+  // p.plot_clusters(10000, 10);
 
   return 0;
 }

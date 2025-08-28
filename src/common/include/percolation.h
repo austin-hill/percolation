@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <limits>
 #include <map>
+#include <print>
 #include <queue>
 #include <stdint.h>
 
@@ -18,7 +19,7 @@
 template <typename element>
 class percolation : public disjoint_set_forest<element>
 {
-  using node = typename disjoint_set_forest<element>::node;
+  using node = typename percolation<element>::node;
 
   /*
   Can possibly use a disjoint set union data structure.
@@ -43,6 +44,8 @@ public:
   }
 
   virtual bool on_boundary(const element& node) = 0;
+
+  virtual void print_node(const std::tuple<int, int, int>& node) = 0;
 
   /* std::vector<std::vector<element>> get_clusters(size_t minimum_size)
   {
