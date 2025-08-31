@@ -19,8 +19,6 @@
 template <typename element>
 class percolation : public disjoint_set_forest<element>
 {
-  using node = typename percolation<element>::node;
-
   /*
   Can possibly use a disjoint set union data structure.
   Loop over all nodes in cube.
@@ -28,6 +26,8 @@ class percolation : public disjoint_set_forest<element>
   Expected complexity: Hopefully in most cases we don't have to do much merging. Either way, should be amortized O(n*ackerman^-1(n)).
   */
 public:
+  using node = typename percolation<element>::node;
+
   struct root_node
   {
     root_node(const element& e, uint32_t size, bool terminated) : value(e), size(size), terminated(terminated)

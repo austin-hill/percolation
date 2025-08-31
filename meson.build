@@ -8,7 +8,7 @@ project(
 
 add_global_arguments('-O2', language: 'cpp')
 add_global_arguments('-std=c++23', language: 'cpp')
-#add_global_arguments('-g', language: 'cpp')
+add_global_arguments('-g', language: 'cpp')
 
 #library('flat_hash_map', 'external/flat_hash_map.hpp')
 library('pcg', ['external/pcg_random.hpp', 'external/pcg_extras.hpp'])

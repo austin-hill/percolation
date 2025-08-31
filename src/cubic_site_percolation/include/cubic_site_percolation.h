@@ -8,6 +8,7 @@
 #include "pcg_extras.hpp"
 #include "pcg_random.hpp"
 #include "percolation.h"
+#include "power.h"
 
 // GNU plot has its limitations here. Do not waste too much time fiddling with it, will probably write something proper later anyway.
 
@@ -20,9 +21,9 @@ class cubic_site_percolation : percolation<std::tuple<int, int, int>>
   Expected complexity: Hopefully in most cases we don't have to do much merging. Either way, should be amortized O(n*ackerman^-1(n)).
   */
 public:
-  cubic_site_percolation(double p, uint8_t cube_size_pow);
+  cubic_site_percolation(double p);
 
-  size_t get_index(const std::tuple<int, int, int>& node) override;
+  inline __attribute__((always_inline)) size_t get_index(const std::tuple<int, int, int>& node) override;
   std::tuple<int, int, int> get_element(size_t index) override;
   bool on_boundary(const std::tuple<int, int, int>& node) override;
 
@@ -31,7 +32,9 @@ public:
     std::cout << "Node: (" << std::get<0>(node) << ", " << std::get<1>(node) << ", " << std::get<2>(node) << ")" << std::endl;
   }
 
-  inline std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node);
+  inline std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node, int start_i);
+
+  inline __attribute__((always_inline)) void merge(const std::tuple<int, int, int>& e1, const std::tuple<int, int, int>& e2) override;
 
   bool generate_clusters();
   bool generate_clusters_parallel(uint8_t max_num_threads);
@@ -43,8 +46,8 @@ private:
   bool merge_clusters_slices(int i);
 
   const double _p;
-  const uint32_t _cube_size;
-  const uint8_t _cube_pow;
+  static constexpr uint8_t _cube_pow = 8;
+  static constexpr uint32_t _cube_size = ipow_tmp<2, _cube_pow>::value;
   const uint64_t _bound;
   pcg64_fast _rng;
   Gnuplot _gp;

@@ -131,11 +131,14 @@ private:
 
 int main()
 {
-  cubic_site_percolation p(0.248, 9); // p(0.2488125); 2^8 = 256 2^9 = 512
-  // percolation1 p(0.248);
-
   timer tm;
   tm.start();
+  cubic_site_percolation p(0.248); // p(0.2488125); 2^8 = 256 2^9 = 512
+  tm.stop();
+  tm.print_ms();
+  // percolation1 p(0.248);
+
+  tm.restart();
   p.generate_clusters_parallel(4);
   tm.stop();
   tm.print_ms();
@@ -159,4 +162,8 @@ Improved memory usage:
 256 uses about 200MB of RAM
 512 uses about 1.6GB of RAM
 1024 uses about 13GB of RAM
+*/
+
+/*
+600ms ish before optimisations
 */

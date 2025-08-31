@@ -73,7 +73,7 @@ public:
     return get_element(get_index(n));
   }
 
-  virtual void merge(const element& e1, const element& e2)
+  inline virtual void merge(const element& e1, const element& e2)
   {
     node* n1 = &_forest[get_index(e1)];
     node* n2 = &_forest[get_index(e2)];
