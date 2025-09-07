@@ -1,5 +1,5 @@
 /* Aim:
- calculate percolation1 phase transition value as accurately as possible.
+ calculate percolation phase transition value as accurately as possible.
  Idea:
  Use PCG prng (or faster one if needed).
  Use multiple threads to grow clusters in parallel.
@@ -15,9 +15,12 @@
  them?
 */
 
+#define force_inline inline __attribute__((always_inline))
+
 #include <algorithm>
 #include <boost/container_hash/hash.hpp>
 #include <limits>
+#include <print>
 #include <queue>
 #include <random>
 #include <set>
@@ -26,16 +29,15 @@
 
 #include "gnuplot-iostream.h"
 
-#include "cubic_site_percolation.h"
 #include "flat_hash_map.hpp"
 #include "pcg_extras.hpp"
 #include "pcg_random.hpp"
 #include "timer.h"
 
-class percolation1
+class percolation
 {
 public:
-  percolation1(double p) : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _rng(pcg_extras::seed_seq_from<std::random_device>{})
+  percolation(double p) : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), _rng(pcg_extras::seed_seq_from<std::random_device>{})
   {
     _neighbours.push({0, 0, 0});
 
@@ -46,13 +48,7 @@ public:
     _gp << "splot NaN" << std::endl;
   }
 
-  void print_node(const std::tuple<int, int, int>& node)
-  {
-    std::cout << "Node: (" << std::get<0>(node) << ", " << std::get<1>(node) << ", " << std::get<2>(node) << ")"
-              << " Neighbours size: " << _neighbours.size() << std::endl;
-  }
-
-  inline std::vector<std::tuple<int, int, int>> get_possible_neighbours(const std::tuple<int, int, int>& node)
+  force_inline std::vector<std::tuple<int, int, int>> get_possible_neighbours(const std::tuple<int, int, int>& node)
   {
     return {
         {    std::get<0>(node),     std::get<1>(node), std::get<2>(node) + 1},
@@ -64,9 +60,9 @@ public:
     };
   }
 
-  bool generate_clusters()
+  bool generate_cluster()
   {
-    std::cout << "Generating cluster..." << std::endl;
+    std::println("Generating cluster...");
     // Almost all time is spent checking and inserting into _nodes.
     while (_neighbours.size() != 0)
     {
@@ -74,8 +70,6 @@ public:
       auto next_node = _neighbours.front();
       _neighbours.pop();
       _nodes.insert(next_node);
-
-      // print_node(next_node);
 
       // Generate its neighbours
       for (auto n : get_possible_neighbours(next_node))
@@ -96,7 +90,7 @@ public:
 
       if (_nodes.size() > 1e5)
       {
-        std::cout << "Failed to terminate: " << _neighbours.size() << std::endl;
+        std::println("Failed to terminate: {}", _neighbours.size());
 
         /* std::vector<std::tuple<int, int, int>> nb;
         while (_neighbours.size() > 0)
@@ -115,7 +109,7 @@ public:
         return false;
       }
     }
-    std::cout << "Generated cluster of size " << _nodes.size() << std::endl;
+    std::println("Generated cluster of size {}", _nodes.size());
     return true;
   }
 
@@ -133,13 +127,13 @@ int main()
 {
   timer tm;
   tm.start();
-  cubic_site_percolation p(0.248); // p(0.2488125); 2^8 = 256 2^9 = 512
+  percolation p(0.248); // p(0.2488125); 2^8 = 256 2^9 = 512
   tm.stop();
   tm.print_ms();
-  // percolation1 p(0.248);
+  // percolation p(0.248);
 
   tm.restart();
-  p.generate_clusters_parallel(4);
+  p.generate_cluster();
   tm.stop();
   tm.print_ms();
 
@@ -147,23 +141,3 @@ int main()
 
   return 0;
 }
-
-/*
-Memory usage:
-4 bytes per int *3 plus 8 bytes size plus 1 byte pointer, so total of 21 bytes per node.
-
-So 500*500*500 probably uses about 2.7GB of RAM
-
-100*100*100 uses about 21MB of RAM.
-
-Improved memory usage:
-12 bytes per node (one size_t, one uint32_t in an struct) rather than 32 bytes (two triplets of ints plus uint64_t)
-
-256 uses about 200MB of RAM
-512 uses about 1.6GB of RAM
-1024 uses about 13GB of RAM
-*/
-
-/*
-600ms ish before optimisations
-*/

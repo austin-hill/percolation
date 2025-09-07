@@ -1,5 +1,4 @@
 #include <string_view>
-#include <vector>
 
 inline constexpr std::array<std::string_view, 22> colour_names = {
     "#e6194B", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "#bfef45", "#fabed4", "#469990",

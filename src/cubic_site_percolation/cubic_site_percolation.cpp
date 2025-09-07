@@ -136,7 +136,7 @@ bool cubic_site_percolation::merge_clusters_slices(int i)
 
 bool cubic_site_percolation::generate_clusters()
 {
-  std::cout << "Generating clusters..." << std::endl;
+  std::println("Generating clusters...");
 
   for (int i = 0; i < _cube_size; ++i)
   {
@@ -185,4 +185,23 @@ void cubic_site_percolation::plot_clusters(uint32_t min_cluster_size, size_t max
         << ((it->second.second) ? "(still growing)" : "(terminated)") << "'" << ((count == max_num_clusters - 1) ? "; pause mouse close" : "")
         << std::endl;
   }
+}
+
+int main()
+{
+  timer tm;
+  tm.start();
+  cubic_site_percolation p(0.248); // p(0.2488125); 2^8 = 256 2^9 = 512
+  tm.stop();
+  tm.print_ms();
+  // percolation1 p(0.248);
+
+  tm.restart();
+  p.generate_clusters_parallel(4);
+  tm.stop();
+  tm.print_ms();
+
+  // p.plot_clusters(10000, 10);
+
+  return 0;
 }

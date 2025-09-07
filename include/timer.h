@@ -1,7 +1,7 @@
 #pragma once
 
 #include <chrono>
-#include <iostream>
+#include <print>
 #include <stdint.h>
 
 // add ifndef
@@ -36,15 +36,15 @@ public:
   }
   void print_ns()
   {
-    std::cout << "Time elapsed: " << _time_ns << "ns" << std::endl;
+    std::println("Time elapsed: {}ns", _time_ns);
   }
   void print_us()
   {
-    std::cout << "Time elapsed: " << _time_ns / 1e3 << "ms" << std::endl;
+    std::println("Time elapsed: {:.2f}us", _time_ns / 1e3);
   }
   void print_ms()
   {
-    std::cout << "Time elapsed: " << _time_ns / 1e6 << "ms" << std::endl;
+    std::println("Time elapsed: {:.2f}ms", _time_ns / 1e6);
   }
 
 private:
