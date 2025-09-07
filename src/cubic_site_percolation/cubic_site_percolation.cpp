@@ -19,30 +19,8 @@
 
 // GNU plot has its limitations here. Do not waste too much time fiddling with it, will probably write something proper later anyway.
 
-// Need to speed this up... Maybe write in assembly by hand
-inline size_t cubic_site_percolation::get_index(const std::tuple<int, int, int>& node)
-{
-  return static_cast<size_t>(std::get<0>(node)) | (static_cast<size_t>(std::get<1>(node) << _cube_pow)) |
-         (static_cast<size_t>(std::get<2>(node)) << (2 * _cube_pow));
-}
-
-std::tuple<int, int, int> cubic_site_percolation::get_element(size_t index)
-{
-  std::tuple<int, int, int> element;
-  std::get<2>(element) = index >> (2 * _cube_pow);
-  std::get<1>(element) = (index >> _cube_pow) - (std::get<2>(element) << _cube_pow);
-  std::get<0>(element) = index - (std::get<1>(element) << _cube_pow) - (std::get<2>(element) << (2 * _cube_pow));
-  return element;
-}
-
-bool cubic_site_percolation::on_boundary(const std::tuple<int, int, int>& node)
-{
-  return std::get<0>(node) == 0 || std::get<0>(node) == _cube_size - 1 || std::get<1>(node) == 0 || std::get<1>(node) == _cube_size - 1 ||
-         std::get<2>(node) == 0 || std::get<2>(node) == _cube_size - 1;
-}
-
 cubic_site_percolation::cubic_site_percolation(double p)
-    : _p(p), _bound(std::numeric_limits<uint64_t>::max() * p), percolation(ipow(_cube_size, static_cast<uint8_t>(3))),
+    : percolation(ipow(_cube_size, static_cast<uint8_t>(3))), _p(p), _bound(std::numeric_limits<uint64_t>::max() * p),
       _rng(pcg_extras::seed_seq_from<std::random_device>{})
 {
   _gp << "set xrange [0:" << _cube_size << "]" << std::endl;
@@ -56,44 +34,6 @@ cubic_site_percolation::cubic_site_percolation(double p)
   _gp << "set key outside right top samplen 2 spacing .7 font ',8' tc rgb 'grey40'" << std::endl;
 }
 
-inline std::vector<std::tuple<int, int, int>> cubic_site_percolation::get_previous(const std::tuple<int, int, int>& node, int start_i)
-{
-  return {
-      {             std::get<0>(node),              std::get<1>(node), std::max(std::get<2>(node) - 1,                0)},
-      {             std::get<0>(node), std::max(std::get<1>(node) - 1,                             0), std::get<2>(node)},
-      {std::max(std::get<0>(node) - 1,                       start_i),              std::get<1>(node), std::get<2>(node)},
-  };
-}
-
-inline void cubic_site_percolation::merge(const std::tuple<int, int, int>& e1, const std::tuple<int, int, int>& e2)
-{
-  cubic_site_percolation::node* n1 = &this->_forest[get_index(e1)];
-  cubic_site_percolation::node* n2 = &this->_forest[get_index(e2)];
-
-  n1 = this->disjoint_set_forest<std::tuple<int, int, int>>::find(n1);
-  n2 = this->disjoint_set_forest<std::tuple<int, int, int>>::find(n2);
-
-  if (n1 == n2)
-  {
-    return;
-  }
-
-  if (n1->size < n2->size)
-  {
-    n1->parent_index = this->disjoint_set_forest<std::tuple<int, int, int>>::get_index(n2);
-    n2->size += n1->size;
-  }
-  else
-  {
-    n2->parent_index = this->disjoint_set_forest<std::tuple<int, int, int>>::get_index(n1);
-    n1->size += n2->size;
-  }
-}
-
-/*
-Would like to parallelise this. An easy way would be to slice the domain up, process each in a thread,
-then repeatedly merge pairs until finished.
-*/
 bool cubic_site_percolation::generate_clusters_parallel(uint8_t max_num_threads)
 {
   generate_merge_clusters_recursive(max_num_threads, 0, _cube_size);

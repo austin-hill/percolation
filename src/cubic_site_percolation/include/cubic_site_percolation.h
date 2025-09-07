@@ -1,5 +1,7 @@
 #pragma once
 
+#define force_inline inline __attribute__((always_inline))
+
 #include <set>
 #include <stdint.h>
 
@@ -23,18 +25,11 @@ class cubic_site_percolation : percolation<std::tuple<int, int, int>>
 public:
   cubic_site_percolation(double p);
 
-  inline __attribute__((always_inline)) size_t get_index(const std::tuple<int, int, int>& node) override;
+  size_t get_index(const std::tuple<int, int, int>& node) override;
   std::tuple<int, int, int> get_element(size_t index) override;
   bool on_boundary(const std::tuple<int, int, int>& node) override;
 
-  void print_node(const std::tuple<int, int, int>& node) override
-  {
-    std::cout << "Node: (" << std::get<0>(node) << ", " << std::get<1>(node) << ", " << std::get<2>(node) << ")" << std::endl;
-  }
-
-  inline std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node, int start_i);
-
-  inline __attribute__((always_inline)) void merge(const std::tuple<int, int, int>& e1, const std::tuple<int, int, int>& e2) override;
+  std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node, int start_i);
 
   bool generate_clusters();
   bool generate_clusters_parallel(uint8_t max_num_threads);
@@ -52,3 +47,34 @@ private:
   pcg64_fast _rng;
   Gnuplot _gp;
 };
+
+// Need to speed this up... Maybe write in assembly by hand
+force_inline size_t cubic_site_percolation::get_index(const std::tuple<int, int, int>& node)
+{
+  return static_cast<size_t>(std::get<0>(node)) | (static_cast<size_t>(std::get<1>(node) << _cube_pow)) |
+         (static_cast<size_t>(std::get<2>(node)) << (2 * _cube_pow));
+}
+
+force_inline std::tuple<int, int, int> cubic_site_percolation::get_element(size_t index)
+{
+  std::tuple<int, int, int> element;
+  std::get<2>(element) = index >> (2 * _cube_pow);
+  std::get<1>(element) = (index >> _cube_pow) - (std::get<2>(element) << _cube_pow);
+  std::get<0>(element) = index - (std::get<1>(element) << _cube_pow) - (std::get<2>(element) << (2 * _cube_pow));
+  return element;
+}
+
+force_inline bool cubic_site_percolation::on_boundary(const std::tuple<int, int, int>& node)
+{
+  return std::get<0>(node) == 0 || std::get<0>(node) == _cube_size - 1 || std::get<1>(node) == 0 || std::get<1>(node) == _cube_size - 1 ||
+         std::get<2>(node) == 0 || std::get<2>(node) == _cube_size - 1;
+}
+
+force_inline std::vector<std::tuple<int, int, int>> cubic_site_percolation::get_previous(const std::tuple<int, int, int>& node, int start_i)
+{
+  return {
+      {             std::get<0>(node),              std::get<1>(node), std::max(std::get<2>(node) - 1,                0)},
+      {             std::get<0>(node), std::max(std::get<1>(node) - 1,                             0), std::get<2>(node)},
+      {std::max(std::get<0>(node) - 1,                       start_i),              std::get<1>(node), std::get<2>(node)},
+  };
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+#define force_inline inline __attribute__((always_inline))
+
 #include <functional>
 #include <iostream>
 #include <print>
@@ -45,7 +47,7 @@ public:
       return size < rhs.size || (size == rhs.size && parent_index < rhs.parent_index);
     }
 
-    size_t parent_index; // Node index is not necessary to store
+    size_t parent_index; // Node index is not necessary to store - get_index is used to retrieve this
     uint32_t size;       // Number of descendants, including self
   };
 
@@ -57,23 +59,23 @@ public:
   virtual size_t get_index(const element& node) = 0; // Must map elements to a unique index in the range [0, num_elements)
   virtual element get_element(size_t index) = 0;     // Inverse map of the above map
 
-  // IMPORTANT: v must not be in the forest.
-  void make_set(const element& e)
+  // IMPORTANT: element must not be in the forest.
+  force_inline void make_set(const element& e)
   {
     node& n = _forest[get_index(e)];
     n.size = 1;
     n.parent_index = get_index(e);
   }
 
-  // e must be in forest
-  element& find(const element& e)
+  // Element must be in forest
+  force_inline element& find(const element& e)
   {
     node& n = _forest[get_index(e)];
 
     return get_element(get_index(n));
   }
 
-  inline virtual void merge(const element& e1, const element& e2)
+  force_inline virtual void merge(const element& e1, const element& e2)
   {
     node* n1 = &_forest[get_index(e1)];
     node* n2 = &_forest[get_index(e2)];
@@ -99,7 +101,8 @@ public:
   }
 
 protected:
-  node* find(node* n)
+  // Find root with path halving
+  force_inline node* find(node* n)
   {
     while (n->parent_index != get_index(n))
     {
@@ -109,7 +112,8 @@ protected:
     return n;
   }
 
-  const node* find_const(const node* n)
+  // Find root without modifying path
+  force_inline const node* find_const(const node* n) const
   {
     while (n->parent_index != get_index(n))
     {
@@ -118,12 +122,12 @@ protected:
     return n;
   }
 
-  node* get_node(const element& e)
+  force_inline node* get_node(const element& e)
   {
     return &_forest[get_index(e)];
   }
 
-  size_t get_index(const node* n) const
+  force_inline size_t get_index(const node* n) const
   {
     return n - &*_forest.begin();
   }
