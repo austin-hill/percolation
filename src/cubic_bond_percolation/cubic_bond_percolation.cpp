@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <thread>
 
-#include "cubic_site_percolation.h"
+#include "cubic_bond_percolation.h"
 
 #include "colour_names.h"
 #include "gnuplot-iostream.h"
@@ -19,7 +19,7 @@
 
 // GNU plot has its limitations here. Do not waste too much time fiddling with it, will probably write something proper later anyway.
 
-cubic_site_percolation::cubic_site_percolation(double p)
+cubic_bond_percolation::cubic_bond_percolation(double p)
     : percolation(ipow(_cube_size, static_cast<uint8_t>(3))), _p(p), _bound(std::numeric_limits<uint64_t>::max() * p),
       _rng(pcg_extras::seed_seq_from<std::random_device>{})
 {
@@ -34,43 +34,43 @@ cubic_site_percolation::cubic_site_percolation(double p)
   _gp << "set key outside right top samplen 2 spacing .7 font ',8' tc rgb 'grey40'" << std::endl;
 }
 
-bool cubic_site_percolation::generate_clusters_parallel(uint8_t max_num_threads)
+// For now, we only use 2^n threads, and max_num_threads is assumed to be >= 2
+void cubic_bond_percolation::generate_clusters_parallel(uint8_t max_num_threads)
 {
   generate_merge_clusters_recursive(max_num_threads, 0, _cube_size);
 
-  return true;
+  return;
 }
 
-// For now, we only use 2^n threads, and max_num_threads is assumed to be >= 2
-bool cubic_site_percolation::generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i)
+void cubic_bond_percolation::generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i)
 {
   int middle_i = (start_i + end_i) / 2;
 
   if (std::min(middle_i - start_i, end_i - middle_i) >= 2 * _cube_size / max_num_threads)
   {
     // Split each in half again and recurse, joining up afterwards
-    std::thread t1(&cubic_site_percolation::generate_merge_clusters_recursive, this, max_num_threads, start_i, middle_i);
-    std::thread t2(&cubic_site_percolation::generate_merge_clusters_recursive, this, max_num_threads, middle_i, end_i);
+    std::thread t1(&cubic_bond_percolation::generate_merge_clusters_recursive, this, max_num_threads, start_i, middle_i);
+    std::thread t2(&cubic_bond_percolation::generate_merge_clusters_recursive, this, max_num_threads, middle_i, end_i);
 
     t1.join();
     t2.join();
 
     merge_clusters_slices(middle_i);
-    return true;
+    return;
   }
 
-  std::thread t1(&cubic_site_percolation::generate_clusters_parallel_thread, this, start_i, middle_i);
-  std::thread t2(&cubic_site_percolation::generate_clusters_parallel_thread, this, middle_i, end_i);
+  std::thread t1(&cubic_bond_percolation::generate_clusters_parallel_thread, this, start_i, middle_i);
+  std::thread t2(&cubic_bond_percolation::generate_clusters_parallel_thread, this, middle_i, end_i);
 
   t1.join();
   t2.join();
 
   merge_clusters_slices(middle_i);
 
-  return true;
+  return;
 }
 
-bool cubic_site_percolation::generate_clusters_parallel_thread(int start_i, int end_i)
+void cubic_bond_percolation::generate_clusters_parallel_thread(int start_i, int end_i)
 {
   std::println("Generating clusters for i {}-{}", start_i, end_i);
 
@@ -97,7 +97,7 @@ bool cubic_site_percolation::generate_clusters_parallel_thread(int start_i, int 
         {
           if (rng() < _bound)
           {
-            cubic_site_percolation::merge(node, new_node);
+            cubic_bond_percolation::merge(node, new_node);
           }
         }
       }
@@ -106,10 +106,10 @@ bool cubic_site_percolation::generate_clusters_parallel_thread(int start_i, int 
 
   std::println("Finished generating clusters for i {}-{}", start_i, end_i);
 
-  return true;
+  return;
 }
 
-bool cubic_site_percolation::merge_clusters_slices(int i)
+void cubic_bond_percolation::merge_clusters_slices(int i)
 {
   pcg64_fast rng(pcg_extras::seed_seq_from<std::random_device>{});
 
@@ -124,51 +124,54 @@ bool cubic_site_percolation::merge_clusters_slices(int i)
 
       if (rng() < _bound)
       {
-        cubic_site_percolation::merge(node1, node2);
+        cubic_bond_percolation::merge(node1, node2);
       }
     }
   }
 
   std::println("Finished merging clusters for i={}", i);
 
-  return true;
+  return;
 }
 
-bool cubic_site_percolation::generate_clusters()
+void cubic_bond_percolation::generate_clusters()
 {
   std::println("Generating clusters...");
 
-  for (int i = 0; i < _cube_size; ++i)
+  std::tuple<int, int, int> new_node;
+
+  std::array<std::tuple<int, int, int>, 3> previous_nodes;
+
+  for (std::get<0>(new_node) = 0; std::get<0>(new_node) < _cube_size; ++std::get<0>(new_node))
   {
-    for (int j = 0; j < _cube_size; ++j)
+    for (std::get<1>(new_node) = 0; std::get<1>(new_node) < _cube_size; ++std::get<1>(new_node))
     {
-      for (int k = 0; k < _cube_size; ++k)
+      for (std::get<2>(new_node) = 0; std::get<2>(new_node) < _cube_size; ++std::get<2>(new_node))
       {
         // Make set and merge with previous (up to three) if there is an edge between them
-        std::tuple<int, int, int> new_node(i, j, k);
         this->make_set(new_node);
 
-        for (const auto& node : get_previous(new_node, 0))
+        previous_nodes[0] = {std::get<0>(new_node), std::get<1>(new_node), std::max(std::get<2>(new_node) - 1, 0)};
+        previous_nodes[1] = {std::get<0>(new_node), std::max(std::get<1>(new_node) - 1, 0), std::get<2>(new_node)};
+        previous_nodes[2] = {std::max(std::get<0>(new_node) - 1, 0), std::get<1>(new_node), std::get<2>(new_node)};
+
+        for (const auto& node : previous_nodes)
         {
-          if (std::get<0>(node) < 0 || std::get<1>(node) < 0 || std::get<2>(node) < 0)
-          {
-            continue;
-          }
           if (_rng() < _bound)
           {
-            cubic_site_percolation::merge(node, new_node);
+            cubic_bond_percolation::merge(node, new_node);
           }
         }
       }
     }
   }
 
-  std::println("Done");
+  std::println("Finished generating clusters");
 
-  return true;
+  return;
 }
 
-void cubic_site_percolation::plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters)
+void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters)
 {
   max_num_clusters = std::min(colour_names.size(), max_num_clusters);
   _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << _cube_size << "'" << std::endl;
@@ -191,7 +194,7 @@ int main()
 {
   timer tm;
   tm.start();
-  cubic_site_percolation p(0.248); // p(0.2488125); 2^8 = 256 2^9 = 512
+  cubic_bond_percolation p(0.288); // p(0.2488125); 2^8 = 256 2^9 = 512
   tm.stop();
   tm.print_ms();
   // percolation1 p(0.248);
@@ -201,7 +204,12 @@ int main()
   tm.stop();
   tm.print_ms();
 
-  // p.plot_clusters(10000, 10);
+  /* tm.restart();
+  const auto large_clusters = p.get_clusters_sorted(10000);
+  tm.stop();
+  tm.print_ms(); */
+
+  p.plot_clusters(10000, 10);
 
   return 0;
 }

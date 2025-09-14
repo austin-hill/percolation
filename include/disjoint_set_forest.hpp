@@ -22,7 +22,13 @@ template <typename element>
 class disjoint_set_forest
 {
 public:
-  struct node
+  /*
+  Force tight packing to ensure 12 bytes per struct, otherwise will be 16. In theory tight struct packing can cause a perfomance
+  penalty when accesses cross cache lines (usually 64 bytes) in a CPU. On the other hand, tight packing can improve performance by
+  reducing the number of cache misses, due to more data fitting on a cache line. In testing, tight packing here seems to improve
+  performance marginally, although not enough to be certain of that. Either way the memory saving is huge.
+  */
+  struct [[gnu::packed]] node
   {
     node() : parent_index(0), size(0)
     {
