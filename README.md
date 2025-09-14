@@ -22,3 +22,15 @@ The second would be to use a [disjoint set forest](https://en.wikipedia.org/wiki
 With this method (using union by size and path halving) we obtain $O(N)$ memory usage and $O(N\alpha(N))$ runtime (where $\alpha$ is the inverse Ackermann function, which can be considered essentially constant for our purposes).
 
 The second method has the obvious advantage of simulating the entire system, not just a single cluster, therefore we shall choose the latter as both offer comparable performance.
+
+### Considerations
+
+We choose union by size, rather than union by rank for the obvious reason of keeping track of the size of each cluster.
+
+Since maintaining a hash map of coordinates to their given element in the forest is relatively slow and space inefficient, we choose instead to index coordinates to a flattened vector of elements of fixed size to represent the forest. This offers another advantage in the following: In a typical disjoint set forest implementation, we store the value of the node, the value of the parent and the size (or rank) for each element in the forest. This would, for example, use 28 bytes per node if using 32 bit integers for 3D coordinates and size. Instead, we only store one size_t for the index of the parent node, and one 32 bit integer for the size of the cluster - the index of the current node can be calculated from its address: Thus we use only 12 bytes per node (using tight struct packing).
+
+Our disjoint set forest implementation requires simply implementing two functions to be used for any lattice: One function mapping coordinates to a unique index, and the other its inverse.
+
+Parallelising the algorithm is straightforwad - we simply slice up the domain and simulate the percolation in each slice, before merging together.
+
+At the end, we can simply iterate over our domain, ignoring any "small" sets below a given threshold, and find a list of clusters and their sizes. We can also plot these if we wish.
