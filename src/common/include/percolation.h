@@ -28,15 +28,15 @@ public:
   {
   }
 
-  virtual bool on_boundary(const element& node) = 0;
+  virtual bool on_boundary(const element& node) const = 0;
 
-  std::map<node, std::pair<std::vector<element>, bool>> get_clusters_sorted(size_t minimum_size)
+  std::map<node, std::pair<std::vector<element>, bool>> get_clusters_sorted(size_t minimum_size) const
   {
     std::map<node, std::pair<std::vector<element>, bool>> clusters;
 
     for (size_t index = 0; index < this->_forest.size(); ++index)
     {
-      const node& root = *this->find(&this->_forest[index]);
+      const node& root = *this->find_const(&this->_forest[index]);
 
       if (root.size > minimum_size)
       {

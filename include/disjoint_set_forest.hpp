@@ -62,8 +62,8 @@ public:
     _forest.resize(num_elements);
   }
 
-  virtual size_t get_index(const element& node) = 0; // Must map elements to a unique index in the range [0, num_elements)
-  virtual element get_element(size_t index) = 0;     // Inverse map of the above map
+  virtual size_t get_index(const element& node) const = 0; // Must map elements to a unique index in the range [0, num_elements)
+  virtual element get_element(size_t index) const = 0;     // Inverse map of the above map
 
   // IMPORTANT: element must not be in the forest.
   force_inline void make_set(const element& e)
@@ -74,7 +74,7 @@ public:
   }
 
   // Element must be in forest
-  force_inline element& find(const element& e)
+  force_inline element& find(const element& e) const
   {
     node& n = _forest[get_index(e)];
 
@@ -128,7 +128,7 @@ protected:
     return n;
   }
 
-  force_inline node* get_node(const element& e)
+  force_inline node* get_node(const element& e) const
   {
     return &_forest[get_index(e)];
   }

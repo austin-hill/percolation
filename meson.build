@@ -45,11 +45,11 @@ executable(
 )
 
 executable(
-  'cubic_site_percolation',
-  'src/cubic_site_percolation/cubic_site_percolation.cpp',
+  'cubic_bond_percolation',
+  'src/cubic_bond_percolation/cubic_bond_percolation.cpp',
   include_directories: [
     'src/common/include',
-    'src/cubic_site_percolation/include',
+    'src/cubic_bond_percolation/include',
   ],
   dependencies: [
     pcg,

@@ -171,7 +171,7 @@ void cubic_bond_percolation::generate_clusters()
   return;
 }
 
-void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters)
+void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters) const
 {
   max_num_clusters = std::min(colour_names.size(), max_num_clusters);
   _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << _cube_size << "'" << std::endl;
@@ -190,11 +190,89 @@ void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max
   }
 }
 
+void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size, size_t max_num_clusters) const
+{
+  max_num_clusters = std::min(colour_names.size(), max_num_clusters);
+
+  std::tuple<int, int, int> current_node;
+  std::map<node, std::pair<std::vector<std::tuple<int, int, int>>, bool>> clusters;
+
+  // Populate map with all roots of clusters which intersect a central cube
+  if (central_cube_size > _cube_size)
+  {
+    std::println("Central cube larger than simulation");
+    return;
+  }
+
+  const size_t min_coordinate = (_cube_size - central_cube_size) / 2;
+  const size_t max_coordinate = (_cube_size + central_cube_size) / 2;
+  for (std::get<0>(current_node) = min_coordinate; std::get<0>(current_node) < max_coordinate; ++std::get<0>(current_node))
+  {
+    for (std::get<1>(current_node) = min_coordinate; std::get<1>(current_node) < max_coordinate; ++std::get<1>(current_node))
+    {
+      for (std::get<2>(current_node) = min_coordinate; std::get<2>(current_node) < max_coordinate; ++std::get<2>(current_node))
+      {
+        // Make set and merge with previous (up to three) if there is an edge between them
+        const size_t index = this->get_index(current_node);
+
+        const node& root = *this->find_const(&this->_forest[index]);
+
+        if (root.size > min_cluster_size)
+        {
+          if (!clusters.contains(root))
+          {
+            clusters.emplace(root, std::pair<std::vector<std::tuple<int, int, int>>, bool>{
+                                       std::vector<std::tuple<int, int, int>>({this->get_element(index)}), on_boundary(this->get_element(index))});
+          }
+        }
+      }
+    }
+  }
+
+  // Now populate map fully
+  for (std::get<0>(current_node) = 0; std::get<0>(current_node) < _cube_size; ++std::get<0>(current_node))
+  {
+    for (std::get<1>(current_node) = 0; std::get<1>(current_node) < _cube_size; ++std::get<1>(current_node))
+    {
+      for (std::get<2>(current_node) = 0; std::get<2>(current_node) < _cube_size; ++std::get<2>(current_node))
+      {
+        // Make set and merge with previous (up to three) if there is an edge between them
+        const size_t index = this->get_index(current_node);
+
+        const node& root = *this->find_const(&this->_forest[index]);
+
+        if (root.size > min_cluster_size)
+        {
+          if (clusters.contains(root))
+          {
+            clusters.at(root).first.push_back(this->get_element(index));
+            clusters.at(root).second |= on_boundary(this->get_element(index));
+          }
+        }
+      }
+    }
+  }
+
+  _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << _cube_size << "'" << std::endl;
+
+  size_t count = 0;
+
+  std::println("Number of clusters of size at least {}: {}", min_cluster_size, clusters.size());
+
+  for (auto it = clusters.crbegin(); it != clusters.crend() && count < max_num_clusters; ++it, ++count)
+  {
+    _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second.first) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
+        << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.first.size() << " points)"
+        << ((it->second.second) ? "(still growing)" : "(terminated)") << "'"
+        << ((count == max_num_clusters - 1 || it == --clusters.crend()) ? "; pause mouse close" : "") << std::endl;
+  }
+}
+
 int main()
 {
   timer tm;
   tm.start();
-  cubic_bond_percolation p(0.288); // p(0.2488125); 2^8 = 256 2^9 = 512
+  cubic_bond_percolation p(0.2488); // p(0.2488125); 2^8 = 256 2^9 = 512
   tm.stop();
   tm.print_ms();
   // percolation1 p(0.248);
@@ -209,7 +287,7 @@ int main()
   tm.stop();
   tm.print_ms(); */
 
-  p.plot_clusters(10000, 10);
+  p.plot_central_clusters(1000, 16, 10);
 
   return 0;
 }

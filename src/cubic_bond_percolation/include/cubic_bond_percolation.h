@@ -25,15 +25,14 @@ class cubic_bond_percolation : public percolation<std::tuple<int, int, int>>
 public:
   cubic_bond_percolation(double p);
 
-  size_t get_index(const std::tuple<int, int, int>& node) override;
-  std::tuple<int, int, int> get_element(size_t index) override;
-  bool on_boundary(const std::tuple<int, int, int>& node) override;
-
-  std::vector<std::tuple<int, int, int>> get_previous(const std::tuple<int, int, int>& node, int start_i);
+  size_t get_index(const std::tuple<int, int, int>& node) const override;
+  std::tuple<int, int, int> get_element(size_t index) const override;
+  bool on_boundary(const std::tuple<int, int, int>& node) const override;
 
   void generate_clusters();
   void generate_clusters_parallel(uint8_t max_num_threads);
-  void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10);
+  void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10) const;
+  void plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size = 64, size_t max_num_clusters = 10) const;
 
 private:
   void generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i);
@@ -41,21 +40,21 @@ private:
   void merge_clusters_slices(int i);
 
   const double _p;
-  static constexpr uint8_t _cube_pow = 8;
+  static constexpr uint8_t _cube_pow = 9;
   static constexpr uint32_t _cube_size = ipow_tmp<2, _cube_pow>::value;
   const uint64_t _bound;
   pcg64_fast _rng;
-  Gnuplot _gp;
+  mutable Gnuplot _gp;
 };
 
 // Need to speed this up... Maybe write in assembly by hand
-force_inline size_t cubic_bond_percolation::get_index(const std::tuple<int, int, int>& node)
+force_inline size_t cubic_bond_percolation::get_index(const std::tuple<int, int, int>& node) const
 {
   return static_cast<size_t>(std::get<0>(node)) | (static_cast<size_t>(std::get<1>(node) << _cube_pow)) |
          (static_cast<size_t>(std::get<2>(node)) << (2 * _cube_pow));
 }
 
-force_inline std::tuple<int, int, int> cubic_bond_percolation::get_element(size_t index)
+force_inline std::tuple<int, int, int> cubic_bond_percolation::get_element(size_t index) const
 {
   std::tuple<int, int, int> element;
   std::get<2>(element) = index >> (2 * _cube_pow);
@@ -64,17 +63,8 @@ force_inline std::tuple<int, int, int> cubic_bond_percolation::get_element(size_
   return element;
 }
 
-force_inline bool cubic_bond_percolation::on_boundary(const std::tuple<int, int, int>& node)
+force_inline bool cubic_bond_percolation::on_boundary(const std::tuple<int, int, int>& node) const
 {
   return std::get<0>(node) == 0 || std::get<0>(node) == _cube_size - 1 || std::get<1>(node) == 0 || std::get<1>(node) == _cube_size - 1 ||
          std::get<2>(node) == 0 || std::get<2>(node) == _cube_size - 1;
-}
-
-force_inline std::vector<std::tuple<int, int, int>> cubic_bond_percolation::get_previous(const std::tuple<int, int, int>& node, int start_i)
-{
-  return {
-      {             std::get<0>(node),              std::get<1>(node), std::max(std::get<2>(node) - 1,                0)},
-      {             std::get<0>(node), std::max(std::get<1>(node) - 1,                             0), std::get<2>(node)},
-      {std::max(std::get<0>(node) - 1,                       start_i),              std::get<1>(node), std::get<2>(node)},
-  };
 }
