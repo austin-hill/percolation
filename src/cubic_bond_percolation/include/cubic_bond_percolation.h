@@ -40,7 +40,7 @@ private:
   void merge_clusters_slices(int i);
 
   const double _p;
-  static constexpr uint8_t _cube_pow = 9;
+  static constexpr uint8_t _cube_pow = 10;
   static constexpr uint32_t _cube_size = ipow_tmp<2, _cube_pow>::value;
   const uint64_t _bound;
   pcg64_fast _rng;

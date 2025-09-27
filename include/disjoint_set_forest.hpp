@@ -7,6 +7,8 @@
 #include <print>
 #include <vector>
 
+#include "memory_mapped_vector.h"
+
 /*
 Store nodes by indices in array (64 bit), with function to retrieve value on output.
 Same for parents
@@ -74,7 +76,7 @@ public:
   }
 
   // Element must be in forest
-  force_inline element& find(const element& e) const
+  force_inline element find(const element& e)
   {
     node& n = _forest[get_index(e)];
 
@@ -128,17 +130,17 @@ protected:
     return n;
   }
 
-  force_inline node* get_node(const element& e) const
+  force_inline node* get_node(const element& e)
   {
     return &_forest[get_index(e)];
   }
 
   force_inline size_t get_index(const node* n) const
   {
-    return n - &*_forest.begin();
+    return n - &_forest[0];
   }
 
-  std::vector<node> _forest;
+  memory_mapped_vector<node> _forest;
   size_t _num_elements;
 };
 
