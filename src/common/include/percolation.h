@@ -38,7 +38,7 @@ public:
     {
       const node& root = *this->find_const(&this->_forest[index]);
 
-      if (root.size > minimum_size)
+      if (root.size >= minimum_size)
       {
         if (clusters.contains(root))
         {

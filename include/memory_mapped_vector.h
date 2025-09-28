@@ -27,7 +27,7 @@ public:
     _data = static_cast<T*>(mmap(nullptr, _size * sizeof(T), PROT_READ | PROT_WRITE, MAP_PRIVATE, _fd, 0));
     if (_data == MAP_FAILED)
     {
-      throw std::runtime_error(std::format("Failed to map file: Code {}", errno));
+      throw std::runtime_error(std::format("Failed to map file: ", std::strerror(errno)));
     }
   }
 
@@ -55,7 +55,7 @@ public:
 
       if (_data == MAP_FAILED)
       {
-        throw std::runtime_error(std::format("Failed to remap file: Code {}", errno));
+        throw std::runtime_error(std::format("Failed to remap file: {}", std::strerror(errno)));
       }
 
       _size = new_size;

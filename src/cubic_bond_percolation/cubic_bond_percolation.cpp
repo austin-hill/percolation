@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <format>
+#include <fstream>
 #include <limits>
 #include <print>
 #include <queue>
@@ -19,9 +21,9 @@
 
 // GNU plot has its limitations here. Do not waste too much time fiddling with it, will probably write something proper later anyway.
 
-cubic_bond_percolation::cubic_bond_percolation(double p)
-    : percolation(ipow(_cube_size, static_cast<uint8_t>(3))), _p(p), _bound(std::numeric_limits<uint64_t>::max() * p),
-      _rng(pcg_extras::seed_seq_from<std::random_device>{})
+cubic_bond_percolation::cubic_bond_percolation(uint8_t cube_pow, double p)
+    : percolation(ipow(2, cube_pow * 3u)), _cube_pow(cube_pow), _cube_size(ipow(2, cube_pow)), _probability(p),
+      _bound(std::numeric_limits<uint64_t>::max() * p), _rng(pcg_extras::seed_seq_from<std::random_device>{})
 {
   _gp << "set xrange [0:" << _cube_size << "]" << std::endl;
   _gp << "set yrange [0:" << _cube_size << "]" << std::endl;
@@ -32,6 +34,12 @@ cubic_bond_percolation::cubic_bond_percolation(double p)
   _gp << "unset ytics" << std::endl;
   _gp << "unset ztics" << std::endl;
   _gp << "set key outside right top samplen 2 spacing .7 font ',8' tc rgb 'grey40'" << std::endl;
+}
+
+void cubic_bond_percolation::set_probability(double p)
+{
+  _probability = p;
+  _bound = std::numeric_limits<uint64_t>::max() * p;
 }
 
 // For now, we only use 2^n threads, and max_num_threads is assumed to be >= 2
@@ -72,7 +80,7 @@ void cubic_bond_percolation::generate_merge_clusters_recursive(uint8_t max_num_t
 
 void cubic_bond_percolation::generate_clusters_parallel_thread(int start_i, int end_i)
 {
-  std::println("Generating clusters for i {}-{}", start_i, end_i);
+  // std::println("Generating clusters for i {}-{}", start_i, end_i);
 
   pcg64_fast rng(pcg_extras::seed_seq_from<std::random_device>{});
 
@@ -104,7 +112,7 @@ void cubic_bond_percolation::generate_clusters_parallel_thread(int start_i, int 
     }
   }
 
-  std::println("Finished generating clusters for i {}-{}", start_i, end_i);
+  // std::println("Finished generating clusters for i {}-{}", start_i, end_i);
 
   return;
 }
@@ -113,7 +121,7 @@ void cubic_bond_percolation::merge_clusters_slices(int i)
 {
   pcg64_fast rng(pcg_extras::seed_seq_from<std::random_device>{});
 
-  std::println("Merging clusters for i={}", i);
+  // std::println("Merging clusters for i={}", i);
   for (int j = 0; j < _cube_size; ++j)
   {
     for (int k = 0; k < _cube_size; ++k)
@@ -129,14 +137,14 @@ void cubic_bond_percolation::merge_clusters_slices(int i)
     }
   }
 
-  std::println("Finished merging clusters for i={}", i);
+  // std::println("Finished merging clusters for i={}", i);
 
   return;
 }
 
 void cubic_bond_percolation::generate_clusters()
 {
-  std::println("Generating clusters...");
+  // std::println("Generating clusters...");
 
   std::tuple<int, int, int> new_node;
 
@@ -166,7 +174,7 @@ void cubic_bond_percolation::generate_clusters()
     }
   }
 
-  std::println("Finished generating clusters");
+  // std::println("Finished generating clusters");
 
   return;
 }
@@ -174,12 +182,12 @@ void cubic_bond_percolation::generate_clusters()
 void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters) const
 {
   max_num_clusters = std::min(colour_names.size(), max_num_clusters);
-  _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << _cube_size << "'" << std::endl;
+  _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _probability << " Cube size=" << _cube_size << "'" << std::endl;
 
   const auto largest_clusters = this->get_clusters_sorted(min_cluster_size);
   size_t count = 0;
 
-  std::println("Number of clusters of size at least {}: {}", min_cluster_size, largest_clusters.size());
+  // std::println("Number of clusters of size at least {}: {}", min_cluster_size, largest_clusters.size());
 
   for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && count < max_num_clusters; ++it, ++count)
   {
@@ -212,12 +220,11 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
     {
       for (std::get<2>(current_node) = min_coordinate; std::get<2>(current_node) < max_coordinate; ++std::get<2>(current_node))
       {
-        // Make set and merge with previous (up to three) if there is an edge between them
         const size_t index = this->get_index(current_node);
 
         const node& root = *this->find_const(&this->_forest[index]);
 
-        if (root.size > min_cluster_size)
+        if (root.size >= min_cluster_size)
         {
           if (!clusters.contains(root))
           {
@@ -236,12 +243,11 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
     {
       for (std::get<2>(current_node) = 0; std::get<2>(current_node) < _cube_size; ++std::get<2>(current_node))
       {
-        // Make set and merge with previous (up to three) if there is an edge between them
         const size_t index = this->get_index(current_node);
 
         const node& root = *this->find_const(&this->_forest[index]);
 
-        if (root.size > min_cluster_size)
+        if (root.size >= min_cluster_size)
         {
           if (clusters.contains(root))
           {
@@ -253,11 +259,11 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
     }
   }
 
-  _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _p << " Cube size=" << _cube_size << "'" << std::endl;
+  _gp << "set title tc rgb 'grey40' 'Percolation, p=" << std::setprecision(8) << _probability << " Cube size=" << _cube_size << "'" << std::endl;
 
   size_t count = 0;
 
-  std::println("Number of clusters of size at least {}: {}", min_cluster_size, clusters.size());
+  // std::println("Number of clusters of size at least {}: {}", min_cluster_size, clusters.size());
 
   for (auto it = clusters.crbegin(); it != clusters.crend() && count < max_num_clusters; ++it, ++count)
   {
@@ -268,26 +274,134 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
   }
 }
 
+void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size_t central_cube_size) const
+{
+  std::tuple<int, int, int> current_node;
+  std::map<node, bool> clusters;
+
+  // Populate map with all roots of clusters which intersect a central cube
+  if (central_cube_size > _cube_size)
+  {
+    std::println("Central cube larger than simulation");
+    return;
+  }
+
+  const size_t min_coordinate = (_cube_size - central_cube_size) / 2;
+  const size_t max_coordinate = (_cube_size + central_cube_size) / 2;
+  for (std::get<0>(current_node) = min_coordinate; std::get<0>(current_node) < max_coordinate; ++std::get<0>(current_node))
+  {
+    for (std::get<1>(current_node) = min_coordinate; std::get<1>(current_node) < max_coordinate; ++std::get<1>(current_node))
+    {
+      for (std::get<2>(current_node) = min_coordinate; std::get<2>(current_node) < max_coordinate; ++std::get<2>(current_node))
+      {
+        const size_t index = this->get_index(current_node);
+
+        const node& root = *this->find_const(&this->_forest[index]);
+
+        if (root.size >= min_cluster_size)
+        {
+          if (!clusters.contains(root))
+          {
+            clusters.emplace(root, on_boundary(this->get_element(index)));
+          }
+          else
+          {
+            clusters.at(root) |= on_boundary(this->get_element(index));
+          }
+        }
+      }
+    }
+  }
+
+  // Check for termination of clusters
+  for (std::get<0>(current_node) = 0; std::get<0>(current_node) < _cube_size; ++std::get<0>(current_node))
+  {
+    for (std::get<1>(current_node) = 0; std::get<1>(current_node) < _cube_size; ++std::get<1>(current_node))
+    {
+      for (std::get<2>(current_node) = 0; std::get<2>(current_node) < _cube_size; ++std::get<2>(current_node))
+      {
+        const size_t index = this->get_index(current_node);
+
+        const node& root = *this->find_const(&this->_forest[index]);
+
+        if (root.size >= min_cluster_size)
+        {
+          if (clusters.contains(root))
+          {
+            clusters.at(root) |= on_boundary(this->get_element(index));
+          }
+        }
+      }
+    }
+  }
+
+  // TODO: ensure directory exists
+  std::ofstream data_file(std::format("src/analyse_data/data/p_24_26/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}.csv", _probability,
+                                      central_cube_size, _cube_size));
+
+  data_file << "probability, central cube size, simulation size\n";
+  data_file << std::format("{:.10f}, {}, {}\n", _probability, central_cube_size, _cube_size);
+  data_file << "\nsize,number terminated,number still growing\n";
+
+  std::array<size_t, 3> line = {clusters.crbegin()->first.size, 0, 0};
+
+  for (auto it = clusters.crbegin(); it != clusters.crend(); ++it)
+  {
+    if (it->first.size == line[0])
+    {
+      if (it->second)
+      {
+        ++line[2];
+      }
+      else
+      {
+        ++line[1];
+      }
+      continue;
+    }
+
+    // Finished with last line, so write out
+    data_file << std::format("{},{},{}\n", line[0], line[1], line[2]);
+
+    line[0] = it->first.size;
+    line[1] = 0;
+    line[2] = 0;
+    if (it->second)
+    {
+      ++line[2];
+    }
+    else
+    {
+      ++line[1];
+    }
+  }
+
+  data_file << std::format("{},{},{}\n", line[0], line[1], line[2]);
+}
+
 int main()
 {
   timer tm;
   tm.start();
-  cubic_bond_percolation p(0.2488); // p(0.2488125); 2^8 = 256 2^9 = 512
-  tm.stop();
-  tm.print_ms();
-  // percolation1 p(0.248);
-
-  tm.restart();
-  p.generate_clusters_parallel(4);
+  cubic_bond_percolation perc(9, 0.24); // p(0.2488125); 2^8 = 256 2^9 = 512
   tm.stop();
   tm.print_ms();
 
-  /* tm.restart();
-  const auto large_clusters = p.get_clusters_sorted(10000);
-  tm.stop();
-  tm.print_ms(); */
+  // TODO: plots show size as being one too large.
 
-  p.plot_central_clusters(1000, 16, 10);
+  for (auto [probability, count] = std::tuple<double, size_t>{0.24, 0}; count < 20; ++count, probability += 0.001)
+  {
+    std::println("Loop {}: Generating clusters for probability={:.10f}", count, probability);
+    perc.set_probability(probability);
+
+    tm.restart();
+    perc.generate_clusters_parallel(4);
+    tm.stop();
+    tm.print_ms();
+
+    perc.write_clusters_data(1, 64);
+  }
+  // perc.plot_central_clusters(1000, 16, 10);
 
   return 0;
 }

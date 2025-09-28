@@ -23,7 +23,9 @@ class cubic_bond_percolation : public percolation<std::tuple<int, int, int>>
   Expected complexity: Hopefully in most cases we don't have to do much merging. Either way, should be amortized O(n*ackerman^-1(n)).
   */
 public:
-  cubic_bond_percolation(double p);
+  cubic_bond_percolation(uint8_t cube_pow, double p);
+
+  void set_probability(double p);
 
   size_t get_index(const std::tuple<int, int, int>& node) const override;
   std::tuple<int, int, int> get_element(size_t index) const override;
@@ -34,16 +36,21 @@ public:
   void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10) const;
   void plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size = 64, size_t max_num_clusters = 10) const;
 
+  void write_clusters_data(uint32_t min_cluster_size, size_t central_cube_size = 64) const;
+
 private:
   void generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i);
   void generate_clusters_parallel_thread(int start_i, int end_i);
   void merge_clusters_slices(int i);
 
-  const double _p;
-  static constexpr uint8_t _cube_pow = 10;
-  static constexpr uint32_t _cube_size = ipow_tmp<2, _cube_pow>::value;
-  const uint64_t _bound;
+  const uint8_t _cube_pow;
+  const uint32_t _cube_size;
+
+  double _probability;
+  uint64_t _bound;
+
   pcg64_fast _rng;
+
   mutable Gnuplot _gp;
 };
 
