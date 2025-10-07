@@ -2,6 +2,7 @@
 
 #define force_inline inline __attribute__((always_inline))
 
+#include <cmath>
 #include <functional>
 #include <iostream>
 #include <print>
@@ -12,7 +13,7 @@
 /*
 Store nodes by indices in array (64 bit), with function to retrieve value on output.
 Same for parents
-Store size as uint32, for clusters up to 4 billion in size.
+Store size as int, for clusters up to 2 billion in size (sign is to determine termination status - negative if cluster is on boundary).
 Thus usage is 12 bytes per node.
 
 Usage was 4*3*2+8 = 32 bytes per node.
@@ -52,11 +53,12 @@ public:
     */
     bool operator<(const node& rhs) const
     {
-      return size < rhs.size || (size == rhs.size && parent_index < rhs.parent_index);
+      return std::abs(size) < std::abs(rhs.size) ||
+             (std::abs(size) == std::abs(rhs.size) && parent_index < rhs.parent_index); // This is eating up 20% of time
     }
 
     size_t parent_index; // Node index is not necessary to store - get_index is used to retrieve this
-    uint32_t size;       // Number of descendants, including self
+    int size;            // Number of descendants, including self
   };
 
   disjoint_set_forest(size_t num_elements) : _num_elements(num_elements)
@@ -67,11 +69,13 @@ public:
   virtual size_t get_index(const element& node) const = 0; // Must map elements to a unique index in the range [0, num_elements)
   virtual element get_element(size_t index) const = 0;     // Inverse map of the above map
 
+  virtual bool on_boundary(const element& node) const = 0;
+
   // IMPORTANT: element must not be in the forest.
   force_inline void make_set(const element& e)
   {
     node& n = _forest[get_index(e)];
-    n.size = 1;
+    n.size = (on_boundary(e)) ? -1 : 1; // Negative size implies cluster hits boundary
     n.parent_index = get_index(e);
   }
 
@@ -96,15 +100,17 @@ public:
       return;
     }
 
-    if (n1->size < n2->size)
+    if (std::abs(n1->size) < std::abs(n2->size))
     {
       n1->parent_index = get_index(n2);
-      n2->size += n1->size;
+      // n2->size = n2->size * (1 - 2 * (n2->size > 0 && n1->size < 0)) + n1->size * (1 - 2 * (n1->size > 0 && n2->size < 0));
+      // Branchless way to add sizes and set result as negative if either cluster hits the boundary (i.e. has negative size)
+      n2->size = (std::abs(n1->size) + std::abs(n2->size)) * (1 - 2 * (n1->size < 0 || n2->size < 0));
     }
     else
     {
       n2->parent_index = get_index(n1);
-      n1->size += n2->size;
+      n1->size = (std::abs(n1->size) + std::abs(n2->size)) * (1 - 2 * (n1->size < 0 || n2->size < 0));
     }
   }
 

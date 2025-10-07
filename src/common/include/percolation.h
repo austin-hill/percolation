@@ -28,27 +28,23 @@ public:
   {
   }
 
-  virtual bool on_boundary(const element& node) const = 0;
-
-  std::map<node, std::pair<std::vector<element>, bool>> get_clusters_sorted(size_t minimum_size) const
+  std::map<node, std::vector<element>> get_clusters_sorted(size_t minimum_size) const
   {
-    std::map<node, std::pair<std::vector<element>, bool>> clusters;
+    std::map<node, std::vector<element>> clusters;
 
     for (size_t index = 0; index < this->_forest.size(); ++index)
     {
       const node& root = *this->find_const(&this->_forest[index]);
 
-      if (root.size >= minimum_size)
+      if (std::abs(root.size) >= minimum_size)
       {
         if (clusters.contains(root))
         {
-          clusters.at(root).first.push_back(this->get_element(index));
-          clusters.at(root).second |= on_boundary(this->get_element(index));
+          clusters.at(root).push_back(this->get_element(index));
         }
         else
         {
-          clusters.emplace(
-              root, std::pair<std::vector<element>, bool>{std::vector<element>({this->get_element(index)}), on_boundary(this->get_element(index))});
+          clusters.emplace(root, std::vector<element>({this->get_element(index)}));
         }
       }
     }

@@ -191,10 +191,10 @@ void cubic_bond_percolation::plot_clusters(uint32_t min_cluster_size, size_t max
 
   for (auto it = largest_clusters.crbegin(); it != largest_clusters.crend() && count < max_num_clusters; ++it, ++count)
   {
-    _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second.first) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
-        << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.first.size() << " points)"
-        << ((it->second.second) ? "(still growing)" : "(terminated)") << "'" << ((count == max_num_clusters - 1) ? "; pause mouse close" : "")
-        << std::endl;
+    _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
+        << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.size() << " points)"
+        << ((it->first.size > 0) ? "(terminated)" : "(still growing)") << "'"
+        << ((count == max_num_clusters - 1 || it == --largest_clusters.crend()) ? "; pause mouse close" : "") << std::endl;
   }
 }
 
@@ -203,7 +203,7 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
   max_num_clusters = std::min(colour_names.size(), max_num_clusters);
 
   std::tuple<int, int, int> current_node;
-  std::map<node, std::pair<std::vector<std::tuple<int, int, int>>, bool>> clusters;
+  std::map<node, std::vector<std::tuple<int, int, int>>> clusters;
 
   // Populate map with all roots of clusters which intersect a central cube
   if (central_cube_size > _cube_size)
@@ -224,12 +224,11 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
 
         const node& root = *this->find_const(&this->_forest[index]);
 
-        if (root.size >= min_cluster_size)
+        if (std::abs(root.size) >= min_cluster_size)
         {
           if (!clusters.contains(root))
           {
-            clusters.emplace(root, std::pair<std::vector<std::tuple<int, int, int>>, bool>{
-                                       std::vector<std::tuple<int, int, int>>({this->get_element(index)}), on_boundary(this->get_element(index))});
+            clusters.emplace(root, std::vector<std::tuple<int, int, int>>({this->get_element(index)}));
           }
         }
       }
@@ -247,12 +246,11 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
 
         const node& root = *this->find_const(&this->_forest[index]);
 
-        if (root.size >= min_cluster_size)
+        if (std::abs(root.size) >= min_cluster_size)
         {
           if (clusters.contains(root))
           {
-            clusters.at(root).first.push_back(this->get_element(index));
-            clusters.at(root).second |= on_boundary(this->get_element(index));
+            clusters.at(root).push_back(this->get_element(index));
           }
         }
       }
@@ -267,9 +265,9 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
 
   for (auto it = clusters.crbegin(); it != clusters.crend() && count < max_num_clusters; ++it, ++count)
   {
-    _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second.first) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
-        << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.first.size() << " points)"
-        << ((it->second.second) ? "(still growing)" : "(terminated)") << "'"
+    _gp << ((count == 0) ? "splot" : "replot") << _gp.file1d(it->second) << "u 1:2:3:(0.03) with points lc rgb '" << colour_names[count]
+        << "' pt 7 ps variable title 'Cluster " << count + 1 << " (" << it->second.size() << " points)"
+        << ((it->first.size > 0) ? "(terminated)" : "(still growing)") << "'"
         << ((count == max_num_clusters - 1 || it == --clusters.crend()) ? "; pause mouse close" : "") << std::endl;
   }
 }
@@ -277,7 +275,7 @@ void cubic_bond_percolation::plot_central_clusters(uint32_t min_cluster_size, si
 void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size_t central_cube_size) const
 {
   std::tuple<int, int, int> current_node;
-  std::map<node, bool> clusters;
+  std::set<node> clusters;
 
   // Populate map with all roots of clusters which intersect a central cube
   if (central_cube_size > _cube_size)
@@ -298,37 +296,11 @@ void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size
 
         const node& root = *this->find_const(&this->_forest[index]);
 
-        if (root.size >= min_cluster_size)
+        if (std::abs(root.size) >= min_cluster_size)
         {
           if (!clusters.contains(root))
           {
-            clusters.emplace(root, on_boundary(this->get_element(index)));
-          }
-          else
-          {
-            clusters.at(root) |= on_boundary(this->get_element(index));
-          }
-        }
-      }
-    }
-  }
-
-  // Check for termination of clusters
-  for (std::get<0>(current_node) = 0; std::get<0>(current_node) < _cube_size; ++std::get<0>(current_node))
-  {
-    for (std::get<1>(current_node) = 0; std::get<1>(current_node) < _cube_size; ++std::get<1>(current_node))
-    {
-      for (std::get<2>(current_node) = 0; std::get<2>(current_node) < _cube_size; ++std::get<2>(current_node))
-      {
-        const size_t index = this->get_index(current_node);
-
-        const node& root = *this->find_const(&this->_forest[index]);
-
-        if (root.size >= min_cluster_size)
-        {
-          if (clusters.contains(root))
-          {
-            clusters.at(root) |= on_boundary(this->get_element(index));
+            clusters.emplace(root);
           }
         }
       }
@@ -336,26 +308,26 @@ void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size
   }
 
   // TODO: ensure directory exists
-  std::ofstream data_file(std::format("src/analyse_data/data/p_24_26/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}.csv", _probability,
-                                      central_cube_size, _cube_size));
+  std::ofstream data_file(
+      std::format("src/analyse_data/data/test/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}.csv", _probability, central_cube_size, _cube_size));
 
   data_file << "probability, central cube size, simulation size\n";
   data_file << std::format("{:.10f}, {}, {}\n", _probability, central_cube_size, _cube_size);
   data_file << "\nsize,number terminated,number still growing\n";
 
-  std::array<size_t, 3> line = {clusters.crbegin()->first.size, 0, 0};
+  std::array<size_t, 3> line = {static_cast<size_t>(std::abs(clusters.crbegin()->size)), 0, 0};
 
   for (auto it = clusters.crbegin(); it != clusters.crend(); ++it)
   {
-    if (it->first.size == line[0])
+    if (std::abs(it->size) == line[0])
     {
-      if (it->second)
+      if (it->size > 0)
       {
-        ++line[2];
+        ++line[1];
       }
       else
       {
-        ++line[1];
+        ++line[2];
       }
       continue;
     }
@@ -363,16 +335,16 @@ void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size
     // Finished with last line, so write out
     data_file << std::format("{},{},{}\n", line[0], line[1], line[2]);
 
-    line[0] = it->first.size;
+    line[0] = std::abs(it->size);
     line[1] = 0;
     line[2] = 0;
-    if (it->second)
+    if (it->size > 0)
     {
-      ++line[2];
+      ++line[1];
     }
     else
     {
-      ++line[1];
+      ++line[2];
     }
   }
 
