@@ -37,6 +37,7 @@ public:
   void plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size = 64, size_t max_num_clusters = 10) const;
 
   void write_clusters_data(uint32_t min_cluster_size, size_t central_cube_size = 64) const;
+  void run_simulations(uint32_t num_simulations, size_t central_cube_size = 64);
 
 private:
   void generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i);

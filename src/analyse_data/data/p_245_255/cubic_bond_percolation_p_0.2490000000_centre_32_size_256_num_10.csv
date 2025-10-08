@@ -1,0 +1,24 @@
+probability, central cube size, simulation size, number of simulations
+0.2490000000, 32, 256, 10
+
+start size,number terminated,number still growing
+1, 58570, 0
+2, 20289, 0
+3, 7462, 0
+4, 3029, 0
+5, 1410, 0
+6, 620, 0
+7, 311, 0
+8, 159, 0
+9, 79, 0
+10, 42, 0
+11, 35, 0
+12, 19, 0
+13, 4, 0
+14, 4, 0
+15, 2, 0
+16, 4, 1
+17, 1, 1
+18, 0, 5
+19, 0, 7
+20, 0, 3
