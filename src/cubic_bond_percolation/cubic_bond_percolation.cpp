@@ -374,7 +374,7 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
     generate_clusters_parallel(4);
 
     std::tuple<int, int, int> current_node;
-    std::set<node> clusters;
+    std::set<node> clusters; // Should really make this unordered
 
     // Populate map with all roots of clusters which intersect a central cube
     const size_t min_coordinate = (_cube_size - central_cube_size) / 2;
@@ -405,6 +405,7 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
     }
 
     // Populate results
+    uint64_t total_size = 0;
     for (auto it = clusters.cbegin(); it != clusters.cend(); ++it)
     {
       /*
@@ -415,10 +416,12 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
       if (it->size > 0)
       {
         ++results[bucket].first;
+        total_size += it->size;
       }
       else
       {
         ++results[bucket].second;
+        total_size += -it->size;
       }
     }
 
@@ -427,7 +430,81 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
   }
 
   // Write out results to file
-  std::filesystem::path results_path = std::format("src/analyse_data/data/p_244/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}_num_{}.csv",
+  std::filesystem::path results_path = std::format("src/analyse_data/data/p_244_test2/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}_num_{}.csv",
+                                                   _probability, central_cube_size, _cube_size, num_simulations);
+  std::filesystem::create_directory(results_path.parent_path());
+  std::ofstream data_file(results_path);
+
+  data_file << "probability, central cube size, simulation size, number of simulations\n";
+  data_file << std::format("{:.10f}, {}, {}, {}\n", _probability, central_cube_size, _cube_size, num_simulations);
+  data_file << "\nstart size,number terminated,number still growing\n";
+
+  for (size_t bucket = 0; bucket < results.size(); ++bucket)
+  {
+    data_file << std::format("{}, {}, {}\n", bucket + 1, results[bucket].first, results[bucket].second);
+  }
+
+  std::println("Completed {} simulations with size {} for p={}", num_simulations, _cube_size, _probability);
+}
+
+void cubic_bond_percolation::run_simulations_test(uint32_t num_simulations, size_t central_cube_size)
+{
+  std::println("Running {} simulations with size {} for p={}", num_simulations, _cube_size, _probability);
+  timer tm;
+
+  if (central_cube_size > _cube_size)
+  {
+    std::println("Central cube larger than simulation");
+    return;
+  }
+
+  std::vector<std::pair<uint64_t, uint64_t>> results;
+  for (uint32_t simulation_count = 0; simulation_count < num_simulations; ++simulation_count)
+  {
+    std::print("Simulation number: {}", simulation_count);
+    tm.restart();
+    // Run simulation
+    generate_clusters_parallel(4);
+
+    std::tuple<int, int, int> current_node;
+
+    // Populate map with all roots of clusters which intersect a central cube
+    const size_t min_coordinate = (_cube_size - central_cube_size) / 2;
+    const size_t max_coordinate = (_cube_size + central_cube_size) / 2;
+    for (std::get<0>(current_node) = min_coordinate; std::get<0>(current_node) < max_coordinate; ++std::get<0>(current_node))
+    {
+      for (std::get<1>(current_node) = min_coordinate; std::get<1>(current_node) < max_coordinate; ++std::get<1>(current_node))
+      {
+        for (std::get<2>(current_node) = min_coordinate; std::get<2>(current_node) < max_coordinate; ++std::get<2>(current_node))
+        {
+          const size_t index = this->get_index(current_node);
+
+          const node& root = *this->find_const(&this->_forest[index]);
+
+          uint32_t bucket = std::bit_width(static_cast<uint32_t>(std::abs(root.size))) - 1;
+          if (results.size() < bucket + 1)
+          {
+            results.resize(bucket + 1, std::pair<uint64_t, uint64_t>(0, 0));
+          }
+
+          if (root.size > 0)
+          {
+            ++results[bucket].first;
+          }
+          else
+          {
+            ++results[bucket].second;
+          }
+        }
+      }
+    }
+
+    tm.stop();
+    std::print(" finished in {} ms\n", tm.get_ms());
+  }
+
+  // Write out results to file
+  std::filesystem::path results_path = std::format("src/analyse_data/data/p_244_test4/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}_num_{}.csv",
                                                    _probability, central_cube_size, _cube_size, num_simulations);
   std::filesystem::create_directory(results_path.parent_path());
   std::ofstream data_file(results_path);
@@ -446,15 +523,15 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
 
 int main()
 {
-  cubic_bond_percolation perc(9, 0.24); // p(0.2488125); 2^8 = 256 2^9 = 512
+  cubic_bond_percolation perc(8, 0.24); // p(0.2488125); 2^8 = 256 2^9 = 512
 
   // TODO: plots show size as being one too large.
 
-  for (auto [probability, count] = std::tuple<double, size_t>{0.244, 0}; count < 8; ++count, probability += 0.001)
+  for (auto [probability, count] = std::tuple<double, size_t>{0.2486, 0}; count < 5; ++count, probability += 0.0001)
   {
     std::println("Loop {}: Generating clusters for probability={:.10f}", count, probability);
     perc.set_probability(probability);
-    perc.run_simulations(10, 64);
+    perc.run_simulations_test(10, 256);
 
     // perc.generate_clusters_parallel(4);
     // perc.write_clusters_data(1, 64);
