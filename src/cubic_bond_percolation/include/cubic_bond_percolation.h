@@ -45,6 +45,10 @@ private:
   void generate_clusters_parallel_thread(int start_i, int end_i);
   void merge_clusters_slices(int i);
 
+  std::vector<std::pair<uint64_t, uint64_t>> count_clusters_parallel_recursive(uint8_t max_num_threads, int start_i, int end_i,
+                                                                               size_t central_cube_size) const;
+  std::vector<std::pair<uint64_t, uint64_t>> count_clusters_parallel_thread(int start_i, int end_i, size_t central_cube_size) const;
+
   const uint8_t _cube_pow;
   const uint32_t _cube_size;
 
