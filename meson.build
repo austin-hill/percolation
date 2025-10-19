@@ -7,6 +7,7 @@ project(
 )
 
 add_global_arguments('-O2', language: 'cpp')
+add_global_arguments('-DNDEBUG', language: 'cpp')
 add_global_arguments('-flto', language: 'cpp')
 add_global_arguments('-std=c++23', language: 'cpp')
 add_global_arguments('-g', language: 'cpp')

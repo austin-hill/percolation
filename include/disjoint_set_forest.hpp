@@ -146,7 +146,7 @@ protected:
     return n - &_forest[0];
   }
 
-  memory_mapped_vector<node> _forest;
+  std::vector<node> _forest;
   size_t _num_elements;
 };
 
