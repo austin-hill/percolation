@@ -64,14 +64,12 @@ public:
 
   T& operator[](size_t n) noexcept
   {
-    assert(n < _size);
-    return _data[n];
+    return *(_data + n);
   }
 
   const T& operator[](size_t n) const noexcept
   {
-    assert(n < _size);
-    return _data[n];
+    return *(_data + n);
   }
 
   constexpr size_t size() const noexcept

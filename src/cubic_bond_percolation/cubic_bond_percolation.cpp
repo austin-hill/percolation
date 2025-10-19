@@ -90,8 +90,6 @@ void cubic_bond_percolation::generate_clusters_parallel_thread(int start_i, int 
 
   std::tuple<int, int, int> new_node;
 
-  std::array<std::tuple<int, int, int>, 3> previous_nodes;
-
   for (std::get<0>(new_node) = start_i; std::get<0>(new_node) < end_i; ++std::get<0>(new_node))
   {
     for (std::get<1>(new_node) = 0; std::get<1>(new_node) < _cube_size; ++std::get<1>(new_node))
@@ -101,16 +99,18 @@ void cubic_bond_percolation::generate_clusters_parallel_thread(int start_i, int 
         // Make set and merge with previous (up to three) if there is an edge between them
         this->make_set(new_node);
 
-        previous_nodes[0] = {std::get<0>(new_node), std::get<1>(new_node), std::max(std::get<2>(new_node) - 1, 0)};
-        previous_nodes[1] = {std::get<0>(new_node), std::max(std::get<1>(new_node) - 1, 0), std::get<2>(new_node)};
-        previous_nodes[2] = {std::max(std::get<0>(new_node) - 1, start_i), std::get<1>(new_node), std::get<2>(new_node)};
-
-        for (const auto& node : previous_nodes)
+        // Do not make this a loop as no need to construct nodes if rng() >= _bound
+        if (rng() < _bound)
         {
-          if (rng() < _bound)
-          {
-            cubic_bond_percolation::merge(node, new_node);
-          }
+          cubic_bond_percolation::merge({std::get<0>(new_node), std::get<1>(new_node), std::max(std::get<2>(new_node) - 1, 0)}, new_node);
+        }
+        if (rng() < _bound)
+        {
+          cubic_bond_percolation::merge({std::get<0>(new_node), std::max(std::get<1>(new_node) - 1, 0), std::get<2>(new_node)}, new_node);
+        }
+        if (rng() < _bound)
+        {
+          cubic_bond_percolation::merge({std::max(std::get<0>(new_node) - 1, start_i), std::get<1>(new_node), std::get<2>(new_node)}, new_node);
         }
       }
     }
@@ -448,7 +448,7 @@ void cubic_bond_percolation::run_simulations(uint32_t num_simulations, size_t ce
   std::println("Completed {} simulations with size {} for p={}", num_simulations, _cube_size, _probability);
 }
 
-void cubic_bond_percolation::run_simulations_test(uint32_t num_simulations, size_t central_cube_size)
+void cubic_bond_percolation::run_simulations_test(const std::string& folder_name, uint32_t num_simulations, size_t central_cube_size)
 {
   std::println("Running {} simulations with size {} for p={}", num_simulations, _cube_size, _probability);
   timer tm;
@@ -481,46 +481,13 @@ void cubic_bond_percolation::run_simulations_test(uint32_t num_simulations, size
       results[i].second += new_results[i].second;
     }
 
-    /*  std::tuple<int, int, int> current_node;
-
-     // Populate map with all roots of clusters which intersect a central cube
-     const size_t min_coordinate = (_cube_size - central_cube_size) / 2;
-     const size_t max_coordinate = (_cube_size + central_cube_size) / 2;
-     for (std::get<0>(current_node) = min_coordinate; std::get<0>(current_node) < max_coordinate; ++std::get<0>(current_node))
-     {
-       for (std::get<1>(current_node) = min_coordinate; std::get<1>(current_node) < max_coordinate; ++std::get<1>(current_node))
-       {
-         for (std::get<2>(current_node) = min_coordinate; std::get<2>(current_node) < max_coordinate; ++std::get<2>(current_node))
-         {
-           const size_t index = this->get_index(current_node);
-
-           const node& root = *this->find_const(&this->_forest[index]);
-
-           uint32_t bucket = std::bit_width(static_cast<uint32_t>(std::abs(root.size))) - 1;
-           if (results.size() < bucket + 1)
-           {
-             results.resize(bucket + 1, std::pair<uint64_t, uint64_t>(0, 0));
-           }
-
-           if (root.size > 0)
-           {
-             ++results[bucket].first;
-           }
-           else
-           {
-             ++results[bucket].second;
-           }
-         }
-       }
-     } */
-
     tm.stop();
     std::print(" finished in {} ms\n", tm.get_ms());
   }
 
   // Write out results to file
-  std::filesystem::path results_path = std::format("src/analyse_data/data/p_244_test15/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}_num_{}.csv",
-                                                   _probability, central_cube_size, _cube_size, num_simulations);
+  std::filesystem::path results_path = std::format("src/analyse_data/data/{}/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}_num_{}.csv",
+                                                   folder_name, _probability, central_cube_size, _cube_size, num_simulations);
   std::filesystem::create_directory(results_path.parent_path());
   std::ofstream data_file(results_path);
 
@@ -624,7 +591,7 @@ std::vector<std::pair<uint64_t, uint64_t>> cubic_bond_percolation::count_cluster
 
 int main()
 {
-  cubic_bond_percolation perc(8, 0.24); // p(0.2488125); 2^8 = 256 2^9 = 512
+  cubic_bond_percolation perc(9, 0.24); // p(0.2488125); 2^8 = 256 2^9 = 512
 
   // TODO: plots show size as being one too large.
 
@@ -632,7 +599,7 @@ int main()
   {
     std::println("Loop {}: Generating clusters for probability={:.10f}", count, probability);
     perc.set_probability(probability);
-    perc.run_simulations_test(200, 256);
+    perc.run_simulations_test("p_244_test18", 200, 512);
 
     // perc.generate_clusters_parallel(4);
     // perc.write_clusters_data(1, 64);
@@ -640,3 +607,9 @@ int main()
   // perc.plot_central_clusters(1000, 16, 10);
   return 0;
 }
+
+/*
+If we want to use mmap, it is much too slow to use directly due to the random access nature of the disjoint set forest.
+Perhaps it would be possible to run the simulation for each slice in memory. Then we could mmap these vectors to chunks of a
+larger file, before finally merging these chunks to get the final result - massively reducing thrashing
+*/

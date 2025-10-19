@@ -75,7 +75,7 @@ public:
   force_inline void make_set(const element& e)
   {
     node& n = _forest[get_index(e)];
-    n.size = (on_boundary(e)) ? -1 : 1; // Negative size implies cluster hits boundary
+    n.size = 2 * on_boundary(e) - 1; // Negative size implies cluster hits boundary
     n.parent_index = get_index(e);
   }
 
