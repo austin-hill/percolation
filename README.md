@@ -34,3 +34,7 @@ Our disjoint set forest implementation requires simply implementing two function
 Parallelising the algorithm is straightforwad - we simply slice up the domain and simulate the percolation in each slice, before merging together.
 
 At the end, we can simply iterate over our domain, ignoring any "small" sets below a given threshold, and find a list of clusters and their sizes. We can also plot these if we wish.
+
+## Analysis of results
+
+Refer to the [Jupyter notebook](src/analyse_data/analyse_data.ipynb) for analysis of the simulations I ran.
