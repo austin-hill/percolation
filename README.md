@@ -1,5 +1,7 @@
 # Simulating Bond Percolation
 
+See [my website](https://austinhill.me/posts/simulating-percolation/) for a full write up of this project.
+
 ## Background
 
 [Percolation theory](https://en.wikipedia.org/wiki/Percolation_theory) is the study of the behaviour of the random subgraphs obtained when adding edges to a lattice with a given probability $p$. More precisely, what we have just described is _bond percolation_ - in the alternate model of _site percolation_ nodes are occupied with a given probability, with edges then implicitly drawn to all neighbouring occupied nodes. Unless otherwise specified, we will always be referring to bond percolation from now on.
