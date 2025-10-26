@@ -4,6 +4,7 @@
 
 #include <set>
 #include <stdint.h>
+#include <string>
 
 #include "gnuplot-iostream.h"
 
@@ -33,12 +34,16 @@ public:
 
   void generate_clusters();
   void generate_clusters_parallel(uint8_t max_num_threads);
-  void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10) const;
-  void plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size = 64, size_t max_num_clusters = 10) const;
 
+  void plot_clusters(uint32_t min_cluster_size, size_t max_num_clusters = 10, const std::string& image_filename = "") const;
+  void plot_central_clusters(uint32_t min_cluster_size, size_t central_cube_size = 64, size_t max_num_clusters = 10,
+                             const std::string& image_filename = "") const;
+
+  // Output the sizes of clusters for a single simulation
   void write_clusters_data(uint32_t min_cluster_size, size_t central_cube_size = 64) const;
-  void run_simulations(uint32_t num_simulations, size_t central_cube_size = 64);
-  void run_simulations_test(const std::string& folder_name, uint32_t num_simulations, size_t central_cube_size = 64);
+
+  // Run a number of simulations and collect cluster size data into bins
+  void run_simulations(const std::string& folder_name, uint32_t num_simulations, size_t central_cube_size = 64, uint8_t max_num_threads = 4);
 
 private:
   void generate_merge_clusters_recursive(uint8_t max_num_threads, int start_i, int end_i);
