@@ -315,8 +315,8 @@ void cubic_bond_percolation::write_clusters_data(uint32_t min_cluster_size, size
   std::ofstream data_file(
       std::format("src/analyse_data/data/test/cubic_bond_percolation_p_{:.10f}_centre_{}_size_{}.csv", _probability, central_cube_size, _cube_size));
 
-  data_file << "probability, central cube size, simulation size\n";
-  data_file << std::format("{:.10f}, {}, {}\n", _probability, central_cube_size, _cube_size);
+  data_file << "probability, central cube size, simulation size, number of simulations\n";
+  data_file << std::format("{:.10f}, {}, {}, 1\n", _probability, central_cube_size, _cube_size);
   data_file << "\nsize,number terminated,number still growing\n";
 
   std::array<size_t, 3> line = {static_cast<size_t>(std::abs(clusters.crbegin()->size)), 0, 0};
@@ -595,11 +595,11 @@ int main()
 
   // TODO: plots show size as being one too large.
 
-  for (auto [probability, count] = std::tuple<double, size_t>{0.2488, 0}; count < 7; ++count, probability += 0.000005)
+  for (auto [probability, count] = std::tuple<double, size_t>{0.24878, 0}; count < 1; ++count, probability += 0.00001)
   {
     std::println("Loop {}: Generating clusters for probability={:.10f}", count, probability);
     perc.set_probability(probability);
-    perc.run_simulations_test("p_244_test18", 200, 512);
+    perc.run_simulations_test("p_244_test25", 20, 32);
 
     // perc.generate_clusters_parallel(4);
     // perc.write_clusters_data(1, 64);
