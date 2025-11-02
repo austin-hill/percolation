@@ -1,6 +1,6 @@
 # Simulating Bond Percolation
 
-See [my website](https://austinhill.me/posts/simulating-percolation/) for a full write up of this project.
+See [my website](https://austinhill.me/posts/simulating-bond-percolation/) for a full write up of this project.
 
 ## Background
 
