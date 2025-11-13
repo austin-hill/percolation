@@ -35,8 +35,6 @@ Our disjoint set forest implementation requires simply implementing two function
 
 Parallelising the algorithm is straightforwad - we simply slice up the domain and simulate the percolation in each slice, before merging together.
 
-At the end, we can simply iterate over our domain, ignoring any "small" sets below a given threshold, and find a list of clusters and their sizes. We can also plot these if we wish.
-
 Pseudorandom numbers are generated using a [permuted congruential generator](https://en.wikipedia.org/wiki/Permuted_congruential_generator) (PCG) with 128 bits of internal state and 64 bit output, based on their speed and strong performance on statistical tests such as [TestU01](https://en.wikipedia.org/wiki/TestU01).
 
 ## Analysis of results
