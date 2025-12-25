@@ -505,7 +505,7 @@ std::vector<std::pair<uint64_t, uint64_t>> cubic_bond_percolation::count_cluster
 
 int main()
 {
-  cubic_bond_percolation perc(8, 0.2488);
+  cubic_bond_percolation perc(10, 0.2488);
 
   // TODO: plots show size as being one too large.
 
@@ -513,7 +513,7 @@ int main()
   {
     std::println("Loop {}: Generating clusters for probability={:.10f}", count, probability);
     perc.set_probability(probability);
-    perc.run_simulations("test4", 500, 64);
+    perc.run_simulations("test4", 100, 128, 8);
 
     // perc.generate_clusters_parallel(4);
     // perc.write_clusters_data(1, 64);
